@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCaminhoes, FROTAS } from "../data/caminhoes";
+import { getCaminhoes, salvarCaminhoes, FROTAS } from "../data/caminhoes";
 import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
 import {
   converterNumero,
@@ -261,7 +261,19 @@ const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
   // CAMINHÕES
   // =========================
 
-  const caminhoes = getCaminhoes();
+  const [caminhoes, setCaminhoes] = useState(getCaminhoes);
+
+  useEffect(() => {
+    salvarCaminhoes(caminhoes);
+  }, [caminhoes]);
+
+  const [editandoCaminhao, setEditandoCaminhao] = useState(false);
+
+  const [dadosEdicao, setDadosEdicao] = useState({
+    modelo: "",
+    motorista: "",
+    frota: "",
+  });
 
   const caminhao = caminhoes.find((item) => item.placa === placa);
 
@@ -275,6 +287,38 @@ const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
         </button>
       </div>
     );
+  }
+
+  function abrirEdicaoCaminhao() {
+    setDadosEdicao({
+      modelo: caminhao.modelo,
+      motorista: caminhao.motorista,
+      frota: caminhao.frota,
+    });
+
+    setEditandoCaminhao(true);
+  }
+
+  function salvarEdicaoCaminhao() {
+    if (!dadosEdicao.modelo.trim() || !dadosEdicao.motorista.trim()) {
+      alert("Preencha todos os campos.");
+      return;
+    }
+
+    setCaminhoes((atuais) =>
+      atuais.map((item) =>
+        item.id === caminhao.id
+          ? {
+              ...item,
+              modelo: dadosEdicao.modelo,
+              motorista: dadosEdicao.motorista,
+              frota: dadosEdicao.frota,
+            }
+          : item
+      )
+    );
+
+    setEditandoCaminhao(false);
   }
 
   // =========================
@@ -564,27 +608,105 @@ function excluirSemanaAbastecimento(idSemana) {
       </button>
 
       <div style={estiloContainer}>
-        <h1>🚛 {caminhao.modelo}</h1>
+        <div style={estiloCabecalhoTitulo}>
+          <h1>🚛 {caminhao.modelo}</h1>
 
-        <div style={estiloInformacoes}>
-          <div>
-            <p style={estiloLegenda}>Placa</p>
-            <strong>{caminhao.placa}</strong>
-          </div>
-
-          <div>
-            <p style={estiloLegenda}>Motorista</p>
-            <strong>{caminhao.motorista}</strong>
-          </div>
-
-          <div>
-            <p style={estiloLegenda}>Frota</p>
-            <strong>
-              {FROTAS.find((f) => f.tipo === caminhao.frota)?.titulo ??
-                "Frota C&M"}
-            </strong>
-          </div>
+          <button
+            style={estiloBotaoEditar}
+            onClick={abrirEdicaoCaminhao}
+          >
+            ✏️ Editar
+          </button>
         </div>
+
+        {editandoCaminhao ? (
+          <div style={estiloFormulario}>
+            <h3>Editar Caminhão</h3>
+
+            <div style={estiloCampos}>
+              <Campo
+                titulo="Modelo"
+                value={dadosEdicao.modelo}
+                onChange={(e) =>
+                  setDadosEdicao({ ...dadosEdicao, modelo: e.target.value })
+                }
+              />
+
+              <div style={estiloLabel}>
+                Placa
+                <span style={estiloPlacaFixa}>{caminhao.placa}</span>
+              </div>
+
+              <Campo
+                titulo="Motorista"
+                value={dadosEdicao.motorista}
+                onChange={(e) =>
+                  setDadosEdicao({
+                    ...dadosEdicao,
+                    motorista: e.target.value,
+                  })
+                }
+              />
+
+              <label style={estiloLabel}>
+                Frota
+
+                <select
+                  value={dadosEdicao.frota}
+                  onChange={(e) =>
+                    setDadosEdicao({
+                      ...dadosEdicao,
+                      frota: e.target.value,
+                    })
+                  }
+                  style={estiloInput}
+                >
+                  {FROTAS.map((frota) => (
+                    <option key={frota.tipo} value={frota.tipo}>
+                      {frota.titulo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div style={estiloAcoesFormulario}>
+              <button
+                style={estiloBotaoCancelar}
+                onClick={() => setEditandoCaminhao(false)}
+              >
+                Cancelar
+              </button>
+
+              <button
+                style={estiloBotaoDourado}
+                onClick={salvarEdicaoCaminhao}
+              >
+                Salvar Alterações
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={estiloInformacoes}>
+            <div>
+              <p style={estiloLegenda}>Placa</p>
+              <strong>{caminhao.placa}</strong>
+            </div>
+
+            <div>
+              <p style={estiloLegenda}>Motorista</p>
+              <strong>{caminhao.motorista}</strong>
+            </div>
+
+            <div>
+              <p style={estiloLegenda}>Frota</p>
+              <strong>
+                {FROTAS.find((f) => f.tipo === caminhao.frota)?.titulo ??
+                  "Frota C&M"}
+              </strong>
+            </div>
+          </div>
+        )}
 
         <div style={estiloMenuAbas}>
           
@@ -2046,6 +2168,31 @@ const estiloContainer = {
   padding: "30px",
   borderRadius: "15px",
   boxShadow: "0 5px 20px rgba(0,0,0,0.08)",
+};
+
+const estiloCabecalhoTitulo = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "20px",
+};
+
+const estiloPlacaFixa = {
+  padding: "12px",
+  border: "1px solid #eee",
+  borderRadius: "8px",
+  background: "#f7f7f7",
+  color: "#777",
+};
+
+const estiloBotaoEditar = {
+  background: "white",
+  color: "#111",
+  border: "1px solid #ddd",
+  padding: "10px 18px",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold",
 };
 
 const estiloInformacoes = {
