@@ -1,7 +1,28 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCaminhoes, salvarCaminhoes, FROTAS } from "../data/caminhoes";
+import { getCaminhoes, atualizarCaminhao, FROTAS } from "../data/caminhoes";
 import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
+import {
+  getSemanasViagens,
+  criarSemanaViagens as criarSemanaViagensApi,
+  adicionarViagem as adicionarViagemApi,
+  excluirViagem as excluirViagemApi,
+  excluirSemanaViagens as excluirSemanaViagensApi,
+} from "../data/viagens";
+import {
+  getSemanasAbastecimento,
+  criarSemanaAbastecimento as criarSemanaAbastecimentoApi,
+  adicionarAbastecimento as adicionarAbastecimentoApi,
+  excluirAbastecimento as excluirAbastecimentoApi,
+  excluirSemanaAbastecimento as excluirSemanaAbastecimentoApi,
+} from "../data/abastecimentos";
+import {
+  getSemanasDespesas,
+  criarSemanaDespesas as criarSemanaDespesasApi,
+  adicionarDespesa as adicionarDespesaApi,
+  excluirDespesa as excluirDespesaApi,
+  excluirSemanaDespesas as excluirSemanaDespesasApi,
+} from "../data/despesas";
 import {
   converterNumero,
   formatarData,
@@ -13,186 +34,152 @@ function Caminhao() {
   const { placa } = useParams();
   const navigate = useNavigate();
 
+  const [carregando, setCarregando] = useState(true);
+  const [erroCarregamento, setErroCarregamento] = useState("");
+  const [caminhao, setCaminhao] = useState(null);
+
   const [abaAtiva, setAbaAtiva] = useState("viagens");
-// ======================
-// DESPESAS EXTRAS
-// ======================
 
-const [despesas, setDespesas] = useState(() => {
-    const despesasSalvas = localStorage.getItem(`despesas-${placa}`);
+  // ======================
+  // DESPESAS EXTRAS
+  // ======================
 
-    return despesasSalvas
-        ? JSON.parse(despesasSalvas)
-        : [];
-});
-useEffect(() => {
-    localStorage.setItem(
-        `despesas-${placa}`,
-        JSON.stringify(despesas)
-    );
-}, [despesas, placa]);
-const [novaDespesa, setNovaDespesa] = useState({
+  const [semanasDespesas, setSemanasDespesas] = useState([]);
+
+  const [novaDespesa, setNovaDespesa] = useState({
     data: "",
     descricao: "",
-    valor: ""
-});
-// ========================
-// SEMANAS DAS DESPESAS
-// ========================
-
-const [semanasDespesas, setSemanasDespesas] = useState(() => {
-  const salvo = localStorage.getItem(`semanas-despesas-${placa}`);
-  return salvo ? JSON.parse(salvo) : [];
-});
-
-const [semanaDespesaAberta, setSemanaDespesaAberta] = useState(null);
-
-const [mostrarNovaSemanaDespesa, setMostrarNovaSemanaDespesa] =
-  useState(false);
-
-const [inicioSemanaDespesa, setInicioSemanaDespesa] = useState("");
-const [fimSemanaDespesa, setFimSemanaDespesa] = useState("");
-
-useEffect(() => {
-  localStorage.setItem(
-    `semanas-despesas-${placa}`,
-    JSON.stringify(semanasDespesas)
-  );
-}, [semanasDespesas, placa]);
-function criarSemanaDespesa() {
-  if (!inicioSemanaDespesa || !fimSemanaDespesa) {
-    alert("Informe o início e o fim da semana.");
-    return;
-  }
-
-  const novaSemana = {
-    id: Date.now(),
-    inicio: inicioSemanaDespesa,
-    fim: fimSemanaDespesa,
-    despesas: [],
-  };
-
-  setSemanasDespesas((semanas) => [...semanas, novaSemana]);
-
-  setInicioSemanaDespesa("");
-  setFimSemanaDespesa("");
-  setMostrarNovaSemanaDespesa(false);
-}
-function adicionarDespesa() {
-
-    if (
-        !novaDespesa.data ||
-        !novaDespesa.descricao ||
-        !novaDespesa.valor
-    ) {
-        alert("Preencha todos os campos da despesa.");
-        return;
-    }
-
-    const despesa = {
-        id: Date.now(),
-        ...novaDespesa,
-        valor: Number(novaDespesa.valor)
-    };
-
-    if (!semanaDespesaAberta) {
-  alert("Abra uma semana antes de cadastrar uma despesa.");
-  return;
-}
-
-const semanasAtualizadas = semanasDespesas.map((semana) => {
-  if (semana.id === semanaDespesaAberta.id) {
-    return {
-      ...semana,
-      despesas: [...semana.despesas, despesa],
-    };
-  }
-
-  return semana;
-});
-
-setSemanasDespesas(semanasAtualizadas);
-
-const semanaAtualizada = semanasAtualizadas.find(
-  (semana) => semana.id === semanaDespesaAberta.id
-);
-
-setSemanaDespesaAberta(semanaAtualizada);
-
-    setNovaDespesa({
-        data: "",
-        descricao: "",
-        valor: ""
-    });
-}
-function excluirDespesaSemana(idDespesa) {
-  const confirmar = window.confirm(
-    "Tem certeza que deseja excluir esta despesa?"
-  );
-
-  if (!confirmar) {
-    return;
-  }
-
-  const semanasAtualizadas = semanasDespesas.map((semana) => {
-    if (semana.id === semanaDespesaAberta.id) {
-      return {
-        ...semana,
-        despesas: semana.despesas.filter(
-          (despesa) => despesa.id !== idDespesa
-        ),
-      };
-    }
-
-    return semana;
+    valor: "",
   });
 
-  setSemanasDespesas(semanasAtualizadas);
+  const [semanaDespesaAberta, setSemanaDespesaAberta] = useState(null);
 
-  const semanaAtualizada = semanasAtualizadas.find(
-    (semana) => semana.id === semanaDespesaAberta.id
-  );
+  const [mostrarNovaSemanaDespesa, setMostrarNovaSemanaDespesa] =
+    useState(false);
 
-  setSemanaDespesaAberta(semanaAtualizada);
-}
-function excluirSemanaDespesa(idSemana) {
-  const confirmar = window.confirm(
-    "Tem certeza que deseja excluir esta semana e todas as despesas cadastradas nela?"
-  );
+  const [inicioSemanaDespesa, setInicioSemanaDespesa] = useState("");
+  const [fimSemanaDespesa, setFimSemanaDespesa] = useState("");
 
-  if (!confirmar) {
-    return;
+  async function criarSemanaDespesa() {
+    if (!inicioSemanaDespesa || !fimSemanaDespesa) {
+      alert("Informe o início e o fim da semana.");
+      return;
+    }
+
+    try {
+      const nova = await criarSemanaDespesasApi(
+        caminhao.id,
+        inicioSemanaDespesa,
+        fimSemanaDespesa
+      );
+
+      setSemanasDespesas((atuais) => [nova, ...atuais]);
+
+      setInicioSemanaDespesa("");
+      setFimSemanaDespesa("");
+      setMostrarNovaSemanaDespesa(false);
+    } catch (e) {
+      alert("Não foi possível criar a semana: " + e.message);
+    }
   }
 
-  const semanasAtualizadas = semanasDespesas.filter(
-    (semana) => semana.id !== idSemana
-  );
+  async function adicionarDespesa() {
+    if (
+      !novaDespesa.data ||
+      !novaDespesa.descricao ||
+      !novaDespesa.valor
+    ) {
+      alert("Preencha todos os campos da despesa.");
+      return;
+    }
 
-  setSemanasDespesas(semanasAtualizadas);
+    if (!semanaDespesaAberta) {
+      alert("Abra uma semana antes de cadastrar uma despesa.");
+      return;
+    }
 
-  if (semanaDespesaAberta?.id === idSemana) {
-    setSemanaDespesaAberta(null);
+    try {
+      const atualizada = await adicionarDespesaApi(semanaDespesaAberta, {
+        data: novaDespesa.data,
+        descricao: novaDespesa.descricao,
+        valor: Number(novaDespesa.valor),
+      });
+
+      setSemanasDespesas((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
+
+      setSemanaDespesaAberta(atualizada);
+
+      setNovaDespesa({
+        data: "",
+        descricao: "",
+        valor: "",
+      });
+    } catch (e) {
+      alert("Não foi possível salvar a despesa: " + e.message);
+    }
   }
-}
+
+  async function excluirDespesaSemana(idDespesa) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir esta despesa?"
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    try {
+      const atualizada = await excluirDespesaApi(
+        semanaDespesaAberta,
+        idDespesa
+      );
+
+      setSemanasDespesas((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
+
+      setSemanaDespesaAberta(atualizada);
+    } catch (e) {
+      alert("Não foi possível excluir a despesa: " + e.message);
+    }
+  }
+
+  async function excluirSemanaDespesa(idSemana) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir esta semana e todas as despesas cadastradas nela?"
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    try {
+      await excluirSemanaDespesasApi(idSemana);
+
+      setSemanasDespesas((atuais) =>
+        atuais.filter((semana) => semana.id !== idSemana)
+      );
+
+      if (semanaDespesaAberta?.id === idSemana) {
+        setSemanaDespesaAberta(null);
+      }
+    } catch (e) {
+      alert("Não foi possível excluir a semana: " + e.message);
+    }
+  }
+
   // =========================
   // VIAGENS
   // =========================
 
-  const [semanas, setSemanas] = useState(() => {
-    const dadosSalvos = localStorage.getItem(
-        `viagens-semanas-${placa}`
-    );
+  const [semanas, setSemanas] = useState([]);
 
-    return dadosSalvos
-        ? JSON.parse(dadosSalvos)
-        : [];
-});
-useEffect(() => {
-    localStorage.setItem(
-        `viagens-semanas-${placa}`,
-        JSON.stringify(semanas)
-    );
-}, [semanas, placa]);
   const [mostrarNovaSemana, setMostrarNovaSemana] = useState(false);
 
   const [inicioSemana, setInicioSemana] = useState("");
@@ -216,36 +203,24 @@ useEffect(() => {
 
   const [mostrarNovoAbastecimento, setMostrarNovoAbastecimento] =
     useState(false);
-    // ========================
-// SEMANAS DE ABASTECIMENTO
-// ========================
 
-const [semanasAbastecimento, setSemanasAbastecimento] = useState(() => {
-    const dadosSalvos = localStorage.getItem(
-        `abastecimentos-semanas-${placa}`
-    );
+  const [semanasAbastecimento, setSemanasAbastecimento] = useState([]);
 
-    return dadosSalvos
-        ? JSON.parse(dadosSalvos)
-        : [];
-});
-useEffect(() => {
-    localStorage.setItem(
-        `abastecimentos-semanas-${placa}`,
-        JSON.stringify(semanasAbastecimento)
-    );
-}, [semanasAbastecimento, placa]);
+  const [semanaAbastecimentoAberta, setSemanaAbastecimentoAberta] =
+    useState(null);
 
-const [semanaAbastecimentoAberta, setSemanaAbastecimentoAberta] = useState(null);
+  const [mostrarNovaSemanaAbastecimento, setMostrarNovaSemanaAbastecimento] =
+    useState(false);
 
-const [mostrarNovaSemanaAbastecimento, setMostrarNovaSemanaAbastecimento] = useState(false);
+  const [inicioSemanaAbastecimento, setInicioSemanaAbastecimento] =
+    useState("");
 
-const [inicioSemanaAbastecimento, setInicioSemanaAbastecimento] = useState("");
+  const [fimSemanaAbastecimento, setFimSemanaAbastecimento] = useState("");
+  const [pesquisaInicioAbastecimento, setPesquisaInicioAbastecimento] =
+    useState("");
 
-const [fimSemanaAbastecimento, setFimSemanaAbastecimento] = useState("");
-const [pesquisaInicioAbastecimento, setPesquisaInicioAbastecimento] = useState("");
-
-const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
+  const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] =
+    useState("");
 
   const [novoAbastecimento, setNovoAbastecimento] = useState({
     data: "",
@@ -258,14 +233,51 @@ const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
   });
 
   // =========================
-  // CAMINHÕES
+  // CARREGAMENTO
   // =========================
 
-  const [caminhoes, setCaminhoes] = useState(getCaminhoes);
-
   useEffect(() => {
-    salvarCaminhoes(caminhoes);
-  }, [caminhoes]);
+    let ativo = true;
+
+    async function carregar() {
+      setCarregando(true);
+      setErroCarregamento("");
+
+      try {
+        const caminhoes = await getCaminhoes();
+        const encontrado =
+          caminhoes.find((item) => item.placa === placa) || null;
+
+        if (!ativo) return;
+        setCaminhao(encontrado);
+
+        if (encontrado) {
+          const [viagensSemanas, abastecimentoSemanas, despesasSemanas] =
+            await Promise.all([
+              getSemanasViagens(encontrado.id),
+              getSemanasAbastecimento(encontrado.id),
+              getSemanasDespesas(encontrado.id),
+            ]);
+
+          if (!ativo) return;
+
+          setSemanas(viagensSemanas);
+          setSemanasAbastecimento(abastecimentoSemanas);
+          setSemanasDespesas(despesasSemanas);
+        }
+      } catch (e) {
+        if (ativo) setErroCarregamento(e.message);
+      } finally {
+        if (ativo) setCarregando(false);
+      }
+    }
+
+    carregar();
+
+    return () => {
+      ativo = false;
+    };
+  }, [placa]);
 
   const [editandoCaminhao, setEditandoCaminhao] = useState(false);
 
@@ -275,7 +287,22 @@ const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
     frota: "",
   });
 
-  const caminhao = caminhoes.find((item) => item.placa === placa);
+  if (carregando) {
+    return <p>Carregando...</p>;
+  }
+
+  if (erroCarregamento) {
+    return (
+      <div>
+        <h1>Erro ao carregar o caminhão</h1>
+        <p style={{ color: "#dc3545" }}>{erroCarregamento}</p>
+
+        <button onClick={() => navigate("/frota")}>
+          Voltar para Frota
+        </button>
+      </div>
+    );
+  }
 
   if (!caminhao) {
     return (
@@ -299,53 +326,54 @@ const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
     setEditandoCaminhao(true);
   }
 
-  function salvarEdicaoCaminhao() {
+  async function salvarEdicaoCaminhao() {
     if (!dadosEdicao.modelo.trim() || !dadosEdicao.motorista.trim()) {
       alert("Preencha todos os campos.");
       return;
     }
 
-    setCaminhoes((atuais) =>
-      atuais.map((item) =>
-        item.id === caminhao.id
-          ? {
-              ...item,
-              modelo: dadosEdicao.modelo,
-              motorista: dadosEdicao.motorista,
-              frota: dadosEdicao.frota,
-            }
-          : item
-      )
-    );
+    try {
+      const atualizado = await atualizarCaminhao(caminhao.id, {
+        modelo: dadosEdicao.modelo,
+        motorista: dadosEdicao.motorista,
+        frota: dadosEdicao.frota,
+      });
 
-    setEditandoCaminhao(false);
+      setCaminhao(atualizado);
+      setEditandoCaminhao(false);
+    } catch (e) {
+      alert("Não foi possível salvar as alterações: " + e.message);
+    }
   }
 
   // =========================
   // FUNÇÕES DAS VIAGENS
   // =========================
 
-  function criarSemana() {
+  async function criarSemana() {
     if (!inicioSemana || !fimSemana) {
       alert("Informe o início e o fim da semana.");
       return;
     }
 
-    const novaSemana = {
-      id: Date.now(),
-      inicio: inicioSemana,
-      fim: fimSemana,
-      viagens: [],
-    };
+    try {
+      const nova = await criarSemanaViagensApi(
+        caminhao.id,
+        inicioSemana,
+        fimSemana
+      );
 
-    setSemanas([...semanas, novaSemana]);
+      setSemanas((atuais) => [nova, ...atuais]);
 
-    setInicioSemana("");
-    setFimSemana("");
-    setMostrarNovaSemana(false);
+      setInicioSemana("");
+      setFimSemana("");
+      setMostrarNovaSemana(false);
+    } catch (e) {
+      alert("Não foi possível criar a semana: " + e.message);
+    }
   }
 
-  function adicionarViagem() {
+  async function adicionarViagem() {
     if (!semanaAberta) return;
 
     if (!novaViagem.data || !novaViagem.nf) {
@@ -353,89 +381,78 @@ const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
       return;
     }
 
-    const viagem = {
-      id: Date.now(),
-      ...novaViagem,
-    };
+    try {
+      const atualizada = await adicionarViagemApi(semanaAberta, novaViagem);
 
-    const semanasAtualizadas = semanas.map((semana) => {
-      if (semana.id === semanaAberta.id) {
-        return {
-          ...semana,
-          viagens: [...semana.viagens, viagem],
-        };
-      }
+      setSemanas((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
 
-      return semana;
-    });
+      setSemanaAberta(atualizada);
 
-    setSemanas(semanasAtualizadas);
+      setNovaViagem({
+        data: "",
+        nf: "",
+        cte: "",
+        volFiscal: "",
+        volEntregue: "",
+        dataEntrega: "",
+      });
 
-    const semanaAtualizada = semanasAtualizadas.find(
-      (semana) => semana.id === semanaAberta.id
+      setMostrarNovaViagem(false);
+    } catch (e) {
+      alert("Não foi possível salvar a viagem: " + e.message);
+    }
+  }
+
+  async function excluirViagem(idViagem) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir esta viagem?"
     );
 
-    setSemanaAberta(semanaAtualizada);
-
-    setNovaViagem({
-      data: "",
-      nf: "",
-      cte: "",
-      volFiscal: "",
-      volEntregue: "",
-      dataEntrega: "",
-    });
-
-    setMostrarNovaViagem(false);
-  }
-
-  function excluirViagem(idViagem) {
-  const confirmar = window.confirm(
-    "Tem certeza que deseja excluir esta viagem?"
-  );
-
-  if (!confirmar) {
-    return;
-  }
-
-  const semanasAtualizadas = semanas.map((semana) => {
-    if (semana.id === semanaAberta.id) {
-      return {
-        ...semana,
-        viagens: semana.viagens.filter(
-          (viagem) => viagem.id !== idViagem
-        ),
-      };
+    if (!confirmar) {
+      return;
     }
 
-    return semana;
-  });
+    try {
+      const atualizada = await excluirViagemApi(semanaAberta, idViagem);
 
-  setSemanas(semanasAtualizadas);
+      setSemanas((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
 
-  const semanaAtualizada = semanasAtualizadas.find(
-    (semana) => semana.id === semanaAberta.id
-  );
-
-  setSemanaAberta(semanaAtualizada);
-}
-
-function excluirSemanaViagens(idSemana) {
-  const confirmar = window.confirm(
-    "Tem certeza que deseja excluir esta semana e todas as viagens cadastradas nela?"
-  );
-
-  if (!confirmar) {
-    return;
+      setSemanaAberta(atualizada);
+    } catch (e) {
+      alert("Não foi possível excluir a viagem: " + e.message);
+    }
   }
 
-  setSemanas((semanasAtuais) =>
-    semanasAtuais.filter((semana) => semana.id !== idSemana)
-  );
+  async function excluirSemanaViagens(idSemana) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir esta semana e todas as viagens cadastradas nela?"
+    );
 
-  setSemanaAberta(null);
-  setMostrarNovaViagem(false);
-}
+    if (!confirmar) {
+      return;
+    }
+
+    try {
+      await excluirSemanaViagensApi(idSemana);
+
+      setSemanas((atuais) =>
+        atuais.filter((semana) => semana.id !== idSemana)
+      );
+
+      setSemanaAberta(null);
+      setMostrarNovaViagem(false);
+    } catch (e) {
+      alert("Não foi possível excluir a semana: " + e.message);
+    }
+  }
 
   function calcularDiferenca(volFiscal, volEntregue) {
     const fiscal = converterNumero(volFiscal);
@@ -452,7 +469,30 @@ function excluirSemanaViagens(idSemana) {
   // FUNÇÕES DOS ABASTECIMENTOS
   // =========================
 
-  function adicionarAbastecimento() {
+  async function criarSemanaAbastecimento() {
+    if (!inicioSemanaAbastecimento || !fimSemanaAbastecimento) {
+      alert("Selecione o início e o fim da semana.");
+      return;
+    }
+
+    try {
+      const nova = await criarSemanaAbastecimentoApi(
+        caminhao.id,
+        inicioSemanaAbastecimento,
+        fimSemanaAbastecimento
+      );
+
+      setSemanasAbastecimento((atuais) => [nova, ...atuais]);
+
+      setInicioSemanaAbastecimento("");
+      setFimSemanaAbastecimento("");
+      setMostrarNovaSemanaAbastecimento(false);
+    } catch (e) {
+      alert("Não foi possível criar a semana: " + e.message);
+    }
+  }
+
+  async function adicionarAbastecimento() {
     if (
       !novoAbastecimento.data ||
       !novoAbastecimento.posto ||
@@ -465,6 +505,12 @@ function excluirSemanaViagens(idSemana) {
       );
       return;
     }
+
+    const semanaAtual = semanasAbastecimento.find(
+      (semana) => semana.id === semanaAbastecimentoAberta
+    );
+
+    if (!semanaAtual) return;
 
     const kmAtual = converterNumero(novoAbastecimento.km);
     const litrosDiesel = converterNumero(
@@ -486,16 +532,11 @@ function excluirSemanaViagens(idSemana) {
     const valorTotal = valorDiesel + valorArla;
 
     let media = null;
-    const semanaAtual = semanasAbastecimento.find(
-  (semana) => semana.id === semanaAbastecimentoAberta
-);
-
-const abastecimentosDaSemana =
-  semanaAtual?.abastecimentos || [];
+    const abastecimentosDaSemana = semanaAtual.abastecimentos || [];
 
     if (abastecimentosDaSemana.length > 0) {
-  const ultimoAbastecimento =
-    abastecimentosDaSemana[abastecimentosDaSemana.length - 1];
+      const ultimoAbastecimento =
+        abastecimentosDaSemana[abastecimentosDaSemana.length - 1];
 
       const kmAnterior = converterNumero(
         ultimoAbastecimento.km
@@ -508,92 +549,96 @@ const abastecimentosDaSemana =
       }
     }
 
-    const abastecimento = {
-      id: Date.now(),
+    try {
+      const atualizada = await adicionarAbastecimentoApi(semanaAtual, {
+        data: novoAbastecimento.data,
+        posto: novoAbastecimento.posto,
+        km: kmAtual,
+        litrosDiesel,
+        precoDiesel,
+        litrosArla,
+        precoArla,
+        media,
+        valorDiesel,
+        valorArla,
+        valorTotal,
+      });
 
-      data: novoAbastecimento.data,
-      posto: novoAbastecimento.posto,
+      setSemanasAbastecimento((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
 
-      km: kmAtual,
+      setNovoAbastecimento({
+        data: "",
+        posto: "",
+        km: "",
+        litrosDiesel: "",
+        precoDiesel: "",
+        litrosArla: "",
+        precoArla: "",
+      });
 
-      litrosDiesel,
-      precoDiesel,
-
-      litrosArla,
-      precoArla,
-
-      media,
-
-      valorDiesel,
-      valorArla,
-      valorTotal,
-    };
-
-    setSemanasAbastecimento((semanas) =>
-  semanas.map((semana) =>
-    semana.id === semanaAbastecimentoAberta
-      ? {
-          ...semana,
-          abastecimentos: [
-            ...semana.abastecimentos,
-            abastecimento,
-          ],
-        }
-      : semana
-  )
-);
-
-    setNovoAbastecimento({
-      data: "",
-      posto: "",
-      km: "",
-      litrosDiesel: "",
-      precoDiesel: "",
-      litrosArla: "",
-      precoArla: "",
-    });
-
-    setMostrarNovoAbastecimento(false);
-  }
-function excluirAbastecimento(idAbastecimento) {
-  const confirmar = window.confirm(
-    "Tem certeza que deseja excluir este abastecimento?"
-  );
-
-  if (!confirmar) {
-    return;
+      setMostrarNovoAbastecimento(false);
+    } catch (e) {
+      alert("Não foi possível salvar o abastecimento: " + e.message);
+    }
   }
 
-  setSemanasAbastecimento((semanas) =>
-    semanas.map((semana) =>
-      semana.id === semanaAbastecimentoAberta
-        ? {
-            ...semana,
-            abastecimentos: semana.abastecimentos.filter(
-              (abastecimento) => abastecimento.id !== idAbastecimento
-            ),
-          }
-        : semana
-    )
-  );
-}
+  async function excluirAbastecimento(idAbastecimento) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir este abastecimento?"
+    );
 
-function excluirSemanaAbastecimento(idSemana) {
-  const confirmar = window.confirm(
-    "Tem certeza que deseja excluir esta semana e todos os abastecimentos dela?"
-  );
+    if (!confirmar) {
+      return;
+    }
 
-  if (!confirmar) {
-    return;
+    const semanaAtual = semanasAbastecimento.find(
+      (semana) => semana.id === semanaAbastecimentoAberta
+    );
+
+    if (!semanaAtual) return;
+
+    try {
+      const atualizada = await excluirAbastecimentoApi(
+        semanaAtual,
+        idAbastecimento
+      );
+
+      setSemanasAbastecimento((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
+    } catch (e) {
+      alert("Não foi possível excluir o abastecimento: " + e.message);
+    }
   }
 
-  setSemanasAbastecimento((semanas) =>
-    semanas.filter((semana) => semana.id !== idSemana)
-  );
+  async function excluirSemanaAbastecimento(idSemana) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir esta semana e todos os abastecimentos dela?"
+    );
 
-  setSemanaAbastecimentoAberta(null);
-  setMostrarNovoAbastecimento(false);
-}
+    if (!confirmar) {
+      return;
+    }
+
+    try {
+      await excluirSemanaAbastecimentoApi(idSemana);
+
+      setSemanasAbastecimento((atuais) =>
+        atuais.filter((semana) => semana.id !== idSemana)
+      );
+
+      setSemanaAbastecimentoAberta(null);
+      setMostrarNovoAbastecimento(false);
+    } catch (e) {
+      alert("Não foi possível excluir a semana: " + e.message);
+    }
+  }
   // =========================
   // TELA
   // =========================
@@ -709,7 +754,7 @@ function excluirSemanaAbastecimento(idSemana) {
         )}
 
         <div style={estiloMenuAbas}>
-          
+
 
           <button
             onClick={() => setAbaAtiva("viagens")}
@@ -1115,7 +1160,7 @@ function excluirSemanaAbastecimento(idSemana) {
                                   viagem.dataEntrega
                                 )}
                               </td>
-                            
+
                             <td style={estiloTd}>
   <button
     onClick={() => excluirViagem(viagem.id)}
@@ -1196,29 +1241,7 @@ function excluirSemanaAbastecimento(idSemana) {
         ...estiloBotaoDourado,
         marginTop: "20px"
     }}
-    onClick={() => {
-
-        if (!inicioSemanaAbastecimento || !fimSemanaAbastecimento) {
-            alert("Selecione o início e o fim da semana.");
-            return;
-        }
-
-        const novaSemana = {
-            id: Date.now(),
-            inicio: inicioSemanaAbastecimento,
-            fim: fimSemanaAbastecimento,
-            abastecimentos: []
-        };
-
-        setSemanasAbastecimento([
-            ...semanasAbastecimento,
-            novaSemana
-        ]);
-
-        setInicioSemanaAbastecimento("");
-        setFimSemanaAbastecimento("");
-        setMostrarNovaSemanaAbastecimento(false);
-    }}
+    onClick={criarSemanaAbastecimento}
 >
     Criar Semana
 </button>
@@ -1230,7 +1253,7 @@ function excluirSemanaAbastecimento(idSemana) {
         display: semanaAbastecimentoAberta ? "none" : "block"
     }}
 >
-  
+
 
 
     <h3>Semanas de Abastecimento</h3>
@@ -1261,7 +1284,7 @@ function excluirSemanaAbastecimento(idSemana) {
     }
   />
 </div>
- 
+
 
     {semanasAbastecimento.length === 0 ? (
         <p style={estiloLegenda}>
@@ -1315,7 +1338,7 @@ function excluirSemanaAbastecimento(idSemana) {
                     style={estiloBotaoDourado}
                     onClick={() => {
     setSemanaAbastecimentoAberta(semana.id);
-    
+
 }}
                 >
                     Abrir →
@@ -1570,7 +1593,7 @@ function excluirSemanaAbastecimento(idSemana) {
 })()}
             </div>
 
-            
+
             {semanaAbastecimentoAberta && mostrarNovoAbastecimento && (
               <div
                 style={{
@@ -1768,7 +1791,7 @@ function excluirSemanaAbastecimento(idSemana) {
               </div>
             )}
 
-            
+
           </div>
         )}
 {/* DESPESAS EXTRAS */}
@@ -1947,7 +1970,7 @@ function excluirSemanaAbastecimento(idSemana) {
 
       </div>
 
-  
+
 <button
   style={estiloBotaoDourado}
   onClick={adicionarDespesa}
@@ -1997,7 +2020,7 @@ function excluirSemanaAbastecimento(idSemana) {
             </td>
 
             <td style={estiloCelula}>
-              R$ {despesa.valor.toFixed(2).replace(".", ",")}
+              R$ {Number(despesa.valor).toFixed(2).replace(".", ",")}
             </td>
             <td style={estiloCelula}>
   <button

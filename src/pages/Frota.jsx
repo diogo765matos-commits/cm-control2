@@ -1,16 +1,37 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCaminhoes, salvarCaminhoes, FROTAS } from "../data/caminhoes";
+import {
+  getCaminhoes,
+  criarCaminhao,
+  excluirCaminhao,
+  FROTAS,
+} from "../data/caminhoes";
 import "../styles/frota.css";
 
 function Frota() {
-  const [caminhoes, setCaminhoes] = useState(getCaminhoes);
+  const [caminhoes, setCaminhoes] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+
+  async function carregar() {
+    setCarregando(true);
+
+    try {
+      const dados = await getCaminhoes();
+      setCaminhoes(dados);
+      setErro("");
+    } catch (e) {
+      setErro(e.message);
+    } finally {
+      setCarregando(false);
+    }
+  }
 
   useEffect(() => {
-    salvarCaminhoes(caminhoes);
-  }, [caminhoes]);
+    carregar();
+  }, []);
 
-  function adicionarCaminhao(dados, tipoFrota) {
+  async function adicionarCaminhao(dados, tipoFrota) {
     const placa = dados.placa.toUpperCase();
 
     const jaExiste = caminhoes.some((c) => c.placa === placa);
@@ -20,30 +41,38 @@ function Frota() {
       return false;
     }
 
-    const caminhao = {
-      id: Date.now(),
-      modelo: dados.modelo,
-      placa,
-      motorista: dados.motorista,
-      frota: tipoFrota,
-    };
-
-    setCaminhoes((atuais) => [...atuais, caminhao]);
-
-    return true;
+    try {
+      const novo = await criarCaminhao(dados, tipoFrota);
+      setCaminhoes((atuais) => [...atuais, novo]);
+      return true;
+    } catch (e) {
+      alert("Não foi possível salvar o caminhão: " + e.message);
+      return false;
+    }
   }
 
-  function excluirCaminhao(id) {
+  async function excluir(id) {
     const confirmar = window.confirm(
       "Tem certeza que deseja excluir este caminhão?"
     );
 
-    if (!confirmar) {
-      return;
-    }
+    if (!confirmar) return;
 
-    setCaminhoes((atuais) =>
-      atuais.filter((caminhao) => caminhao.id !== id)
+    try {
+      await excluirCaminhao(id);
+      setCaminhoes((atuais) => atuais.filter((caminhao) => caminhao.id !== id));
+    } catch (e) {
+      alert("Não foi possível excluir o caminhão: " + e.message);
+    }
+  }
+
+  if (carregando) {
+    return <p>Carregando frota...</p>;
+  }
+
+  if (erro) {
+    return (
+      <p style={{ color: "#dc3545" }}>Erro ao carregar a frota: {erro}</p>
     );
   }
 
@@ -53,20 +82,20 @@ function Frota() {
         <SecaoFrota
           key={frota.tipo}
           titulo={frota.titulo}
-          tipoFrota={frota.tipo}
           caminhoes={caminhoes.filter((c) => c.frota === frota.tipo)}
           onAdicionar={(dados) => adicionarCaminhao(dados, frota.tipo)}
-          onExcluir={excluirCaminhao}
+          onExcluir={excluir}
         />
       ))}
     </>
   );
 }
 
-function SecaoFrota({ titulo, tipoFrota, caminhoes, onAdicionar, onExcluir }) {
+function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
   const navigate = useNavigate();
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
   const [novoCaminhao, setNovoCaminhao] = useState({
     modelo: "",
@@ -74,7 +103,7 @@ function SecaoFrota({ titulo, tipoFrota, caminhoes, onAdicionar, onExcluir }) {
     motorista: "",
   });
 
-  function salvar() {
+  async function salvar() {
     if (
       !novoCaminhao.modelo.trim() ||
       !novoCaminhao.placa.trim() ||
@@ -84,7 +113,11 @@ function SecaoFrota({ titulo, tipoFrota, caminhoes, onAdicionar, onExcluir }) {
       return;
     }
 
-    const sucesso = onAdicionar(novoCaminhao);
+    setSalvando(true);
+
+    const sucesso = await onAdicionar(novoCaminhao);
+
+    setSalvando(false);
 
     if (sucesso === false) {
       return;
@@ -136,8 +169,8 @@ function SecaoFrota({ titulo, tipoFrota, caminhoes, onAdicionar, onExcluir }) {
           />
 
           <div style={{ display: "flex", gap: "10px" }}>
-            <button type="button" onClick={salvar}>
-              Salvar Caminhão
+            <button type="button" onClick={salvar} disabled={salvando}>
+              {salvando ? "Salvando..." : "Salvar Caminhão"}
             </button>
 
             <button
