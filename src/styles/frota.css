@@ -117,3 +117,63 @@ padding:30px;
 text-align:center;
 
 }
+
+.form-novo-caminhao{
+
+background:#f7f7f7;
+
+padding:25px;
+
+border-radius:12px;
+
+margin-bottom:30px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:15px;
+
+max-width:420px;
+
+}
+
+.form-novo-caminhao h2{
+
+margin-bottom:5px;
+
+}
+
+.form-novo-caminhao input{
+
+padding:12px;
+
+border:1px solid #ccc;
+
+border-radius:8px;
+
+font-size:15px;
+
+background:white;
+
+width:100%;
+
+}
+
+.form-novo-caminhao button{
+
+background:#D4A019;
+
+color:#111;
+
+border:none;
+
+padding:12px 20px;
+
+border-radius:8px;
+
+cursor:pointer;
+
+font-weight:bold;
+
+}
