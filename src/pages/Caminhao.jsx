@@ -1,6 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getCaminhoes } from "../data/caminhoes";
+import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
+import {
+  converterNumero,
+  formatarData,
+  formatarMoeda,
+  formatarNumero,
+} from "../utils/formatadores";
 
 function Caminhao() {
   const { placa } = useParams();
@@ -543,44 +550,6 @@ function excluirSemanaAbastecimento(idSemana) {
   setSemanaAbastecimentoAberta(null);
   setMostrarNovoAbastecimento(false);
 }
-  // =========================
-  // FUNÇÕES GERAIS
-  // =========================
-
-  function converterNumero(valor) {
-    if (
-      valor === "" ||
-      valor === null ||
-      valor === undefined
-    ) {
-      return NaN;
-    }
-
-    return Number(String(valor).replace(",", "."));
-  }
-
-  function formatarData(data) {
-    if (!data) return "-";
-
-    const [ano, mes, dia] = data.split("-");
-
-    return `${dia}/${mes}/${ano}`;
-  }
-
-  function formatarMoeda(valor) {
-    return valor.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-  }
-
-  function formatarNumero(valor, casas = 2) {
-    return Number(valor).toLocaleString("pt-BR", {
-      minimumFractionDigits: casas,
-      maximumFractionDigits: casas,
-    });
-  }
-
   // =========================
   // TELA
   // =========================
@@ -1942,13 +1911,13 @@ function excluirSemanaAbastecimento(idSemana) {
     0
   );
 
-  const valorPorVolume = 32.6;
-
   const receitaBruta =
-    volumeTotalEntregue * valorPorVolume;
+    volumeTotalEntregue * VALOR_POR_VOLUME;
 
   const pagamentoMotorista =
-    receitaBruta * 0.10;
+    receitaBruta * PERCENTUAL_MOTORISTA;
+
+  const valorEmpresa = receitaBruta - pagamentoMotorista;
 
   return (
     <div>
@@ -1968,7 +1937,7 @@ function excluirSemanaAbastecimento(idSemana) {
 
         <CardResumo
           titulo="Valor por Volume"
-          valor="R$ 32,60"
+          valor={formatarMoeda(VALOR_POR_VOLUME)}
         />
 
         <CardResumo
@@ -1977,8 +1946,13 @@ function excluirSemanaAbastecimento(idSemana) {
         />
 
         <CardResumo
-          titulo="Pagamento do Motorista (10%)"
+          titulo={`Pagamento do Motorista (${PERCENTUAL_MOTORISTA * 100}%)`}
           valor={formatarMoeda(pagamentoMotorista)}
+        />
+
+        <CardResumo
+          titulo="Fica para a Empresa"
+          valor={formatarMoeda(valorEmpresa)}
         />
 
       </div>
