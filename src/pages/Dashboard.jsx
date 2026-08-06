@@ -94,8 +94,8 @@ function Dashboard() {
 
       <p style={{ color: "#777", marginTop: "30px" }}>
         {resumo.totalCaminhoes} caminhão(ões) cadastrado(s). Valores somam
-        todas as semanas lançadas em todos os caminhões — veja o detalhamento
-        por semana em "Fechamento".
+        todas as semanas lançadas em todos os caminhões — veja o
+        detalhamento semana a semana na aba "Financeiro" de cada caminhão.
       </p>
     </>
   );

@@ -2087,6 +2087,82 @@ function excluirSemanaAbastecimento(idSemana) {
 
       </div>
 
+      <h2 style={{ marginTop: "35px" }}>Fechamento por Semana</h2>
+
+      <p style={estiloLegenda}>
+        Mesmos valores acima, detalhados semana a semana.
+      </p>
+
+      {semanas.length === 0 ? (
+        <p style={{ ...estiloLegenda, marginTop: "15px" }}>
+          Nenhuma semana cadastrada ainda. Lance viagens na aba "Viagens"
+          para ver o fechamento aqui.
+        </p>
+      ) : (
+        <div style={{ ...estiloTabelaContainer, marginTop: "20px" }}>
+          <table style={estiloTabela}>
+            <thead>
+              <tr>
+                <th style={estiloTh}>Semana</th>
+                <th style={estiloTh}>Viagens</th>
+                <th style={estiloTh}>Volume Entregue</th>
+                <th style={estiloTh}>Valor Bruto</th>
+                <th style={estiloTh}>Motorista (10%)</th>
+                <th style={estiloTh}>Fica p/ Empresa</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {[...semanas]
+                .sort((a, b) => (a.inicio < b.inicio ? 1 : -1))
+                .map((semana) => {
+                  const volumeSemana = semana.viagens.reduce(
+                    (total, viagem) =>
+                      total + (converterNumero(viagem.volEntregue) || 0),
+                    0
+                  );
+
+                  const valorBrutoSemana =
+                    volumeSemana * VALOR_POR_VOLUME;
+
+                  const motoristaSemana =
+                    valorBrutoSemana * PERCENTUAL_MOTORISTA;
+
+                  const empresaSemana =
+                    valorBrutoSemana - motoristaSemana;
+
+                  return (
+                    <tr key={semana.id}>
+                      <td style={estiloTd}>
+                        {formatarData(semana.inicio)} até{" "}
+                        {formatarData(semana.fim)}
+                      </td>
+
+                      <td style={estiloTd}>{semana.viagens.length}</td>
+
+                      <td style={estiloTd}>
+                        {formatarNumero(volumeSemana)}
+                      </td>
+
+                      <td style={estiloTd}>
+                        {formatarMoeda(valorBrutoSemana)}
+                      </td>
+
+                      <td style={estiloTd}>
+                        {formatarMoeda(motoristaSemana)}
+                      </td>
+
+                      <td style={estiloTd}>
+                        {formatarMoeda(empresaSemana)}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
     </div>
   );
 

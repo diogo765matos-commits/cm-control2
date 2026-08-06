@@ -30,15 +30,6 @@ function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/fechamento"
-          className={({ isActive }) =>
-            isActive ? "menu-link active" : "menu-link"
-          }
-        >
-          📅 Fechamento
-        </NavLink>
-
-        <NavLink
           to="/relatorios"
           className={({ isActive }) =>
             isActive ? "menu-link active" : "menu-link"

@@ -5,7 +5,6 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Frota from "./pages/Frota";
 import Caminhao from "./pages/Caminhao";
-import Fechamento from "./pages/Fechamento";
 import Relatorios from "./pages/Relatorios";
 
 function App() {
@@ -29,11 +28,6 @@ function App() {
             <Route
               path="/caminhao/:placa"
               element={<Caminhao />}
-            />
-
-            <Route
-              path="/fechamento"
-              element={<Fechamento />}
             />
 
             <Route
