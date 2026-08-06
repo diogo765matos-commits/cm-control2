@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCaminhoes } from "../data/caminhoes";
+import { getCaminhoes, FROTAS } from "../data/caminhoes";
 import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
 import {
   converterNumero,
@@ -575,6 +575,14 @@ function excluirSemanaAbastecimento(idSemana) {
           <div>
             <p style={estiloLegenda}>Motorista</p>
             <strong>{caminhao.motorista}</strong>
+          </div>
+
+          <div>
+            <p style={estiloLegenda}>Frota</p>
+            <strong>
+              {FROTAS.find((f) => f.tipo === caminhao.frota)?.titulo ??
+                "Frota C&M"}
+            </strong>
           </div>
         </div>
 
