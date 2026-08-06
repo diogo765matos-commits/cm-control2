@@ -7,7 +7,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Frota from "./pages/Frota";
 import Caminhao from "./pages/Caminhao";
-import Relatorios from "./pages/Relatorios";
+import DespesasExtras from "./pages/Relatorios";
 
 import { auth } from "./lib/supabase";
 
@@ -33,7 +33,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/frota" element={<Frota />} />
             <Route path="/caminhao/:placa" element={<Caminhao />} />
-            <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="/despesas-extras" element={<DespesasExtras />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

@@ -30,12 +30,12 @@ function Sidebar({ onSair }) {
         </NavLink>
 
         <NavLink
-          to="/relatorios"
+          to="/despesas-extras"
           className={({ isActive }) =>
             isActive ? "menu-link active" : "menu-link"
           }
         >
-          📊 Relatórios
+          🧾 Despesas Extras
         </NavLink>
 
       </nav>
