@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { getCaminhoes } from "../data/caminhoes";
 
 function Caminhao() {
   const { placa } = useParams();
@@ -69,23 +70,6 @@ function criarSemanaDespesa() {
   setInicioSemanaDespesa("");
   setFimSemanaDespesa("");
   setMostrarNovaSemanaDespesa(false);
-}
-function excluirSemanaDespesa(idSemana) {
-  const confirmar = window.confirm(
-    "Tem certeza que deseja excluir esta semana e todas as despesas dela?"
-  );
-
-  if (!confirmar) {
-    return;
-  }
-
-  setSemanasDespesas((semanas) =>
-    semanas.filter((semana) => semana.id !== idSemana)
-  );
-
-  if (semanaDespesaAberta?.id === idSemana) {
-    setSemanaDespesaAberta(null);
-  }
 }
 function adicionarDespesa() {
 
@@ -223,7 +207,6 @@ useEffect(() => {
   // ABASTECIMENTOS
   // =========================
 
-  const [abastecimentos, setAbastecimentos] = useState([]);
   const [mostrarNovoAbastecimento, setMostrarNovoAbastecimento] =
     useState(false);
     // ========================
@@ -271,21 +254,7 @@ const [pesquisaFimAbastecimento, setPesquisaFimAbastecimento] = useState("");
   // CAMINHÕES
   // =========================
 
-  const caminhoes = [
-    {
-      id: 1,
-      modelo: "Actros",
-      placa: "SLM 1B85",
-      motorista: "Abimael Lima",
-    },
-    {
-    
-      id: 2,
-      modelo: "Scania R450",
-      placa: "XYZ4F85",
-      motorista: "Pedro Santos",
-    },
-  ];
+  const caminhoes = getCaminhoes();
 
   const caminhao = caminhoes.find((item) => item.placa === placa);
 
@@ -574,63 +543,6 @@ function excluirSemanaAbastecimento(idSemana) {
   setSemanaAbastecimentoAberta(null);
   setMostrarNovoAbastecimento(false);
 }
-  function calcularTotalDiesel() {
-    return abastecimentos.reduce(
-      (total, abastecimento) =>
-        total + abastecimento.valorDiesel,
-      0
-    );
-  }
-
-  function calcularTotalArla() {
-    return abastecimentos.reduce(
-      (total, abastecimento) =>
-        total + abastecimento.valorArla,
-      0
-    );
-  }
-
-  function calcularTotalAbastecimentos() {
-    return abastecimentos.reduce(
-      (total, abastecimento) =>
-        total + abastecimento.valorTotal,
-      0
-    );
-  }
-
-  function calcularLitrosDiesel() {
-    return abastecimentos.reduce(
-      (total, abastecimento) =>
-        total + abastecimento.litrosDiesel,
-      0
-    );
-  }
-
-  function calcularLitrosArla() {
-    return abastecimentos.reduce(
-      (total, abastecimento) =>
-        total + abastecimento.litrosArla,
-      0
-    );
-  }
-
-  function calcularMediaGeral() {
-    const abastecimentosComMedia = abastecimentos.filter(
-      (item) => item.media !== null
-    );
-
-    if (abastecimentosComMedia.length === 0) {
-      return null;
-    }
-
-    const soma = abastecimentosComMedia.reduce(
-      (total, item) => total + item.media,
-      0
-    );
-
-    return soma / abastecimentosComMedia.length;
-  }
-
   // =========================
   // FUNÇÕES GERAIS
   // =========================
@@ -668,14 +580,6 @@ function excluirSemanaAbastecimento(idSemana) {
       maximumFractionDigits: casas,
     });
   }
-
-  const totalViagens = semanas.reduce(
-    (total, semana) =>
-      total + semana.viagens.length,
-    0
-  );
-
-  const mediaGeral = calcularMediaGeral();
 
   // =========================
   // TELA
@@ -740,38 +644,6 @@ function excluirSemanaAbastecimento(idSemana) {
   💰 Financeiro
 </button>
         </div>
-
-        {/* RESUMO */}
-
-        {abaAtiva === "resumo" && (
-          <div>
-            <h2>Resumo do Caminhão</h2>
-
-            <div style={estiloCardsResumo}>
-              <CardResumo
-                titulo="Semanas cadastradas"
-                valor={semanas.length}
-              />
-
-              <CardResumo
-                titulo="Total de viagens"
-                valor={totalViagens}
-              />
-
-              <CardResumo
-                titulo="Abastecimentos"
-                valor={abastecimentos.length}
-              />
-
-              <CardResumo
-                titulo="Gasto com combustível"
-                valor={formatarMoeda(
-                  calcularTotalAbastecimentos()
-                )}
-              />
-            </div>
-          </div>
-        )}
 
         {/* VIAGENS */}
 

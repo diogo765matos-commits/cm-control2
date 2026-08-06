@@ -1,34 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getCaminhoes, salvarCaminhoes } from "../data/caminhoes";
 import "../styles/frota.css";
 
 function Frota() {
   const navigate = useNavigate();
 
-const [caminhoes, setCaminhoes] = useState(() => {
-  const caminhoesSalvos = localStorage.getItem("caminhoes");
+const [caminhoes, setCaminhoes] = useState(getCaminhoes);
 
-  if (caminhoesSalvos) {
-    return JSON.parse(caminhoesSalvos);
-  }
-
-  return [
-    {
-      id: 1,
-      modelo: "Volvo FH 540",
-      placa: "ABC1D23",
-      motorista: "João Silva",
-    },
-    {
-      id: 2,
-      modelo: "Scania R450",
-      placa: "XYZ4F85",
-      motorista: "Pedro Santos",
-    },
-  ];
-});
 useEffect(() => {
-  localStorage.setItem("caminhoes", JSON.stringify(caminhoes));
+  salvarCaminhoes(caminhoes);
 }, [caminhoes]);
 const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
