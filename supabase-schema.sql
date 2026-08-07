@@ -39,12 +39,12 @@ create table if not exists despesas_semanas (
 );
 
 -- Despesas gerais da empresa, sem ligação com um caminhão específico
--- (aba "Despesas Extras" do menu).
-create table if not exists despesas_gerais (
+-- (aba "Despesas Extras" do menu), organizadas por semana.
+create table if not exists despesas_gerais_semanas (
   id bigint generated always as identity primary key,
-  data date not null,
-  descricao text not null,
-  valor numeric not null,
+  inicio date not null,
+  fim date not null,
+  despesas jsonb not null default '[]'::jsonb,
   criado_em timestamptz not null default now()
 );
 
@@ -52,7 +52,7 @@ alter table caminhoes enable row level security;
 alter table viagens_semanas enable row level security;
 alter table abastecimento_semanas enable row level security;
 alter table despesas_semanas enable row level security;
-alter table despesas_gerais enable row level security;
+alter table despesas_gerais_semanas enable row level security;
 
 -- Qualquer pessoa com login válido (criado por você no painel do Supabase)
 -- pode ler e escrever em todas as tabelas. Não existe cadastro público:
@@ -78,7 +78,7 @@ create policy "usuarios autenticados - despesas" on despesas_semanas
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 
-create policy "usuarios autenticados - despesas gerais" on despesas_gerais
+create policy "usuarios autenticados - despesas gerais" on despesas_gerais_semanas
   for all
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
