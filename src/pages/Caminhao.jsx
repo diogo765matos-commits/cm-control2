@@ -230,6 +230,7 @@ function Caminhao() {
     precoDiesel: "",
     litrosArla: "",
     precoArla: "",
+    desconto: "",
   });
 
   // =========================
@@ -529,7 +530,8 @@ function Caminhao() {
 
     const valorDiesel = litrosDiesel * precoDiesel;
     const valorArla = litrosArla * precoArla;
-    const valorTotal = valorDiesel + valorArla;
+    const desconto = converterNumero(novoAbastecimento.desconto) || 0;
+    const valorTotal = valorDiesel + valorArla - desconto;
 
     let media = null;
     const abastecimentosDaSemana = semanaAtual.abastecimentos || [];
@@ -561,6 +563,7 @@ function Caminhao() {
         media,
         valorDiesel,
         valorArla,
+        desconto,
         valorTotal,
       });
 
@@ -578,6 +581,7 @@ function Caminhao() {
         precoDiesel: "",
         litrosArla: "",
         precoArla: "",
+        desconto: "",
       });
 
       setMostrarNovoAbastecimento(false);
@@ -1436,6 +1440,7 @@ function Caminhao() {
           <th style={estiloTh}>Preço/L ARLA</th>
           <th style={estiloTh}>Valor Diesel</th>
           <th style={estiloTh}>Valor ARLA</th>
+          <th style={estiloTh}>Desconto</th>
           <th style={estiloTh}>Valor Total</th>
           <th style={estiloTh}>Ações</th>
         </tr>
@@ -1484,6 +1489,10 @@ function Caminhao() {
 
       <td style={estiloTd}>
         {formatarMoeda(abastecimento.valorArla)}
+      </td>
+
+      <td style={estiloTd}>
+        {formatarMoeda(abastecimento.desconto || 0)}
       </td>
 
       <td
@@ -1566,6 +1575,19 @@ function Caminhao() {
         semana.abastecimentos.reduce(
           (total, abastecimento) =>
             total + abastecimento.valorArla,
+          0
+        )
+      )}
+    </strong>
+  </div>
+
+  <div>
+    <span style={estiloLegenda}>Total Desconto</span>
+    <strong>
+      {formatarMoeda(
+        semana.abastecimentos.reduce(
+          (total, abastecimento) =>
+            total + (abastecimento.desconto || 0),
           0
         )
       )}
@@ -1708,6 +1730,23 @@ function Caminhao() {
                       })
                     }
                   />
+
+                  <Campo
+                    titulo="Desconto"
+                    type="number"
+                    step="0.01"
+                    placeholder="R$ 0,00"
+                    value={
+                      novoAbastecimento.desconto
+                    }
+                    onChange={(e) =>
+                      setNovoAbastecimento({
+                        ...novoAbastecimento,
+                        desconto:
+                          e.target.value,
+                      })
+                    }
+                  />
                 </div>
 
                 <div style={estiloPreviaValores}>
@@ -1747,6 +1786,20 @@ function Caminhao() {
 
                   <div>
                     <span style={estiloLegenda}>
+                      Desconto
+                    </span>
+
+                    <strong>
+                      {formatarMoeda(
+                        converterNumero(
+                          novoAbastecimento.desconto
+                        ) || 0
+                      )}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span style={estiloLegenda}>
                       Valor Total
                     </span>
 
@@ -1763,7 +1816,10 @@ function Caminhao() {
                           ) || 0) *
                             (converterNumero(
                               novoAbastecimento.precoArla
-                            ) || 0)
+                            ) || 0) -
+                          (converterNumero(
+                            novoAbastecimento.desconto
+                          ) || 0)
                       )}
                     </strong>
                   </div>
