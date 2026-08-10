@@ -21,6 +21,14 @@ export function formatarMoeda(valor) {
   });
 }
 
+export function formatarMoedaCompacta(valor) {
+  return Number(valor || 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  });
+}
+
 export function formatarNumero(valor, casas = 2) {
   return Number(valor || 0).toLocaleString("pt-BR", {
     minimumFractionDigits: casas,

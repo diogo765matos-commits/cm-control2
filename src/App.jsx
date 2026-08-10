@@ -26,7 +26,7 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app">
-        <Sidebar onSair={sair} />
+        <Sidebar onSair={sair} email={sessao?.user?.email} />
 
         <div className="content">
           <Routes>

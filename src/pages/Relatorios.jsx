@@ -7,7 +7,10 @@ import {
   excluirSemanaDespesasGerais,
   atualizarSemanaDespesasGerais,
 } from "../data/despesasGerais";
-import { formatarData } from "../utils/formatadores";
+import { formatarData, formatarMoeda } from "../utils/formatadores";
+import PageHeader from "../components/PageHeader";
+import DateRangeFilter from "../components/DateRangeFilter";
+import KpiCard, { CORES_KPI } from "../components/KpiCard";
 
 function DespesasExtras() {
   const [carregando, setCarregando] = useState(true);
@@ -15,6 +18,9 @@ function DespesasExtras() {
 
   const [semanas, setSemanas] = useState([]);
   const [semanaAberta, setSemanaAberta] = useState(null);
+
+  const [filtroInicio, setFiltroInicio] = useState("");
+  const [filtroFim, setFiltroFim] = useState("");
 
   const [mostrarNovaSemana, setMostrarNovaSemana] = useState(false);
   const [inicioSemana, setInicioSemana] = useState("");
@@ -45,6 +51,12 @@ function DespesasExtras() {
   useEffect(() => {
     carregar();
   }, []);
+
+  function semanaNoFiltro(semana) {
+    if (filtroInicio && semana.inicio < filtroInicio) return false;
+    if (filtroFim && semana.inicio > filtroFim) return false;
+    return true;
+  }
 
   async function criarSemana() {
     if (!inicioSemana || !fimSemana) {
@@ -179,16 +191,74 @@ function DespesasExtras() {
     );
   }
 
+  const semanasVisiveis = semanas.filter(semanaNoFiltro);
+  const despesasVisiveis = semanasVisiveis.flatMap((semana) => semana.despesas);
+
+  const totalDespesas = despesasVisiveis.reduce(
+    (total, despesa) => total + Number(despesa.valor || 0),
+    0
+  );
+
+  const maiorDespesa = despesasVisiveis.reduce(
+    (maior, despesa) => Math.max(maior, Number(despesa.valor || 0)),
+    0
+  );
+
+  const mediaDespesa =
+    despesasVisiveis.length > 0 ? totalDespesas / despesasVisiveis.length : 0;
+
   return (
     <div>
+      <PageHeader
+        titulo="Despesas Extras"
+        subtitulo="Despesas gerais da empresa, sem ligação com um caminhão específico."
+      >
+        <DateRangeFilter
+          inicio={filtroInicio}
+          fim={filtroFim}
+          onAplicar={(inicio, fim) => {
+            setFiltroInicio(inicio);
+            setFiltroFim(fim);
+          }}
+          onLimpar={() => {
+            setFiltroInicio("");
+            setFiltroFim("");
+          }}
+        />
+      </PageHeader>
+
+      <div style={estiloGridKpis}>
+        <KpiCard
+          icone="👛"
+          cor={CORES_KPI.verde}
+          rotulo="Total de Despesas"
+          valor={formatarMoeda(totalDespesas)}
+          legenda="No período selecionado"
+        />
+        <KpiCard
+          icone="📄"
+          cor={CORES_KPI.azul}
+          rotulo="Quantidade"
+          valor={despesasVisiveis.length}
+          legenda="Despesas registradas"
+        />
+        <KpiCard
+          icone="⬆️"
+          cor={CORES_KPI.laranja}
+          rotulo="Maior Despesa"
+          valor={formatarMoeda(maiorDespesa)}
+          legenda="No período selecionado"
+        />
+        <KpiCard
+          icone="🧮"
+          cor={CORES_KPI.roxo}
+          rotulo="Média por Despesa"
+          valor={formatarMoeda(mediaDespesa)}
+          legenda="Valor médio"
+        />
+      </div>
+
       <div style={estiloContainer}>
-        <h1>Despesas Extras</h1>
-
-        <p style={estiloLegenda}>
-          Despesas gerais da empresa, sem ligação com um caminhão
-          específico.
-        </p>
-
         {!semanaAberta ? (
           <>
             <div style={estiloCabecalhoSecao}>
@@ -243,17 +313,23 @@ function DespesasExtras() {
               </div>
             )}
 
-            {semanas.length === 0 ? (
+            {semanasVisiveis.length === 0 ? (
               <div style={estiloVazio}>
-                <h3>Nenhuma semana cadastrada</h3>
+                <h3>
+                  {semanas.length === 0
+                    ? "Nenhuma semana cadastrada"
+                    : "Nenhuma semana no período selecionado"}
+                </h3>
 
                 <p>
-                  Clique em "+ Nova Semana" para começar a lançar despesas.
+                  {semanas.length === 0
+                    ? 'Clique em "+ Nova Semana" para começar a lançar despesas.'
+                    : "Ajuste o filtro de período para ver outras semanas."}
                 </p>
               </div>
             ) : (
               <div style={estiloListaSemanas}>
-                {semanas.map((semana) =>
+                {semanasVisiveis.map((semana) =>
                   editandoSemana?.id === semana.id ? (
                     <div key={semana.id} style={estiloSemana}>
                       <div style={estiloCampos}>
@@ -299,8 +375,8 @@ function DespesasExtras() {
                       </div>
                     </div>
                   ) : (
-                    <div key={semana.id} style={estiloSemana}>
-                      <div>
+                    <div key={semana.id} style={estiloSemanaRica}>
+                      <div style={estiloSemanaInfo}>
                         <p style={estiloLegenda}>Período</p>
 
                         <h3>
@@ -315,6 +391,40 @@ function DespesasExtras() {
                             : "despesas"}
                         </p>
                       </div>
+
+                      {(() => {
+                        const totalSemana = semana.despesas.reduce(
+                          (total, despesa) => total + Number(despesa.valor || 0),
+                          0
+                        );
+                        const maiorSemana = semana.despesas.reduce(
+                          (maior, despesa) =>
+                            Math.max(maior, Number(despesa.valor || 0)),
+                          0
+                        );
+                        const mediaSemana =
+                          semana.despesas.length > 0
+                            ? totalSemana / semana.despesas.length
+                            : 0;
+
+                        return (
+                          <div style={estiloEstatisticasSemana}>
+                            <MiniEstatistica
+                              titulo="Total de Despesas"
+                              valor={formatarMoeda(totalSemana)}
+                              destaque
+                            />
+                            <MiniEstatistica
+                              titulo="Maior Despesa"
+                              valor={formatarMoeda(maiorSemana)}
+                            />
+                            <MiniEstatistica
+                              titulo="Média por Despesa"
+                              valor={formatarMoeda(mediaSemana)}
+                            />
+                          </div>
+                        );
+                      })()}
 
                       <div style={{ display: "flex", gap: "10px" }}>
                         <button
@@ -336,6 +446,11 @@ function DespesasExtras() {
                 )}
               </div>
             )}
+
+            <p style={estiloRodapeInfo}>
+              ℹ️ Despesas extras são custos que não estão vinculados a um
+              caminhão específico.
+            </p>
           </>
         ) : (
           <>
@@ -363,15 +478,7 @@ function DespesasExtras() {
 
               <button
                 onClick={() => excluirSemana(semanaAberta.id)}
-                style={{
-                  background: "#dc3545",
-                  color: "white",
-                  border: "none",
-                  padding: "10px 16px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
+                style={estiloBotaoExcluirSemana}
               >
                 🗑 Excluir Semana
               </button>
@@ -432,14 +539,13 @@ function DespesasExtras() {
             ) : (
               <div>
                 <h3 style={{ marginBottom: "20px" }}>
-                  Total: R${" "}
-                  {semanaAberta.despesas
-                    .reduce(
+                  Total:{" "}
+                  {formatarMoeda(
+                    semanaAberta.despesas.reduce(
                       (total, despesa) => total + Number(despesa.valor || 0),
                       0
                     )
-                    .toFixed(2)
-                    .replace(".", ",")}
+                  )}
                 </h3>
 
                 <div style={estiloTabelaContainer}>
@@ -461,21 +567,12 @@ function DespesasExtras() {
                           </td>
                           <td style={estiloTd}>{despesa.descricao}</td>
                           <td style={estiloTd}>
-                            R${" "}
-                            {Number(despesa.valor).toFixed(2).replace(".", ",")}
+                            {formatarMoeda(despesa.valor)}
                           </td>
                           <td style={estiloTd}>
                             <button
                               onClick={() => excluirDespesa(despesa.id)}
-                              style={{
-                                background: "#dc3545",
-                                color: "white",
-                                border: "none",
-                                padding: "8px 12px",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                fontWeight: "bold",
-                              }}
+                              style={estiloBotaoExcluirLinha}
                             >
                               🗑️ Excluir
                             </button>
@@ -510,15 +607,38 @@ function Campo({ titulo, type = "text", value, onChange, placeholder }) {
   );
 }
 
+function MiniEstatistica({ titulo, valor, destaque }) {
+  return (
+    <div style={estiloMiniEstatistica}>
+      <span style={estiloMiniEstatisticaTitulo}>{titulo}</span>
+      <strong
+        style={{
+          ...estiloMiniEstatisticaValor,
+          color: destaque ? "var(--cor-primaria)" : "var(--cor-texto)",
+        }}
+      >
+        {valor}
+      </strong>
+    </div>
+  );
+}
+
+const estiloGridKpis = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+  gap: "16px",
+  marginBottom: "24px",
+};
+
 const estiloContainer = {
   background: "white",
   padding: "30px",
-  borderRadius: "15px",
-  boxShadow: "0 5px 20px rgba(0,0,0,0.08)",
+  borderRadius: "var(--raio)",
+  boxShadow: "var(--sombra-card)",
 };
 
 const estiloLegenda = {
-  color: "#777",
+  color: "var(--cor-texto-secundario)",
   margin: "5px 0",
 };
 
@@ -528,13 +648,13 @@ const estiloCabecalhoSecao = {
   alignItems: "center",
   gap: "20px",
   marginBottom: "25px",
-  marginTop: "10px",
 };
 
 const estiloFormulario = {
-  background: "#f7f7f7",
-  padding: "25px",
-  borderRadius: "12px",
+  background: "#f9fafb",
+  border: "1px solid var(--cor-borda)",
+  padding: "20px",
+  borderRadius: "var(--raio-pequeno)",
   marginBottom: "25px",
 };
 
@@ -557,8 +677,8 @@ const estiloLabel = {
 
 const estiloInput = {
   padding: "12px",
-  border: "1px solid #ccc",
-  borderRadius: "8px",
+  border: "1px solid var(--cor-borda)",
+  borderRadius: "var(--raio-pequeno)",
   fontSize: "15px",
   background: "white",
 };
@@ -571,11 +691,11 @@ const estiloAcoesFormulario = {
 };
 
 const estiloBotaoDourado = {
-  background: "#D4A019",
-  color: "#111",
+  background: "var(--cor-primaria)",
+  color: "white",
   border: "none",
   padding: "12px 20px",
-  borderRadius: "8px",
+  borderRadius: "var(--raio-pequeno)",
   cursor: "pointer",
   fontWeight: "bold",
 };
@@ -585,25 +705,25 @@ const estiloBotaoCancelar = {
   color: "#333",
   border: "none",
   padding: "12px 20px",
-  borderRadius: "8px",
+  borderRadius: "var(--raio-pequeno)",
   cursor: "pointer",
 };
 
 const estiloBotaoEscuro = {
-  background: "#111",
+  background: "var(--cor-sidebar)",
   color: "white",
   border: "none",
   padding: "12px 20px",
-  borderRadius: "8px",
+  borderRadius: "var(--raio-pequeno)",
   cursor: "pointer",
 };
 
 const estiloBotaoEditar = {
   background: "white",
   color: "#111",
-  border: "1px solid #ddd",
+  border: "1px solid var(--cor-borda)",
   padding: "10px 18px",
-  borderRadius: "8px",
+  borderRadius: "var(--raio-pequeno)",
   cursor: "pointer",
   fontWeight: "bold",
 };
@@ -616,6 +736,26 @@ const estiloBotaoVoltarSemana = {
   marginBottom: "15px",
   color: "#555",
   fontSize: "14px",
+};
+
+const estiloBotaoExcluirSemana = {
+  background: "var(--cor-perigo-clara)",
+  color: "var(--cor-perigo)",
+  border: "none",
+  padding: "10px 16px",
+  borderRadius: "var(--raio-pequeno)",
+  cursor: "pointer",
+  fontWeight: "bold",
+};
+
+const estiloBotaoExcluirLinha = {
+  background: "var(--cor-perigo-clara)",
+  color: "var(--cor-perigo)",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: "var(--raio-pequeno)",
+  cursor: "pointer",
+  fontWeight: "bold",
 };
 
 const estiloVazio = {
@@ -633,7 +773,7 @@ const estiloListaSemanas = {
 };
 
 const estiloSemana = {
-  border: "1px solid #eee",
+  border: "1px solid var(--cor-borda)",
   padding: "20px",
   borderRadius: "12px",
   display: "flex",
@@ -642,15 +782,55 @@ const estiloSemana = {
   gap: "20px",
 };
 
+const estiloSemanaRica = {
+  border: "1px solid var(--cor-borda)",
+  padding: "18px 20px",
+  borderRadius: "12px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "20px",
+  flexWrap: "wrap",
+};
+
+const estiloSemanaInfo = {
+  minWidth: "160px",
+};
+
+const estiloEstatisticasSemana = {
+  display: "flex",
+  gap: "22px",
+  flexWrap: "wrap",
+  flex: 1,
+};
+
+const estiloMiniEstatistica = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "3px",
+  minWidth: "110px",
+};
+
+const estiloMiniEstatisticaTitulo = {
+  fontSize: "11px",
+  color: "var(--cor-texto-secundario)",
+  whiteSpace: "nowrap",
+};
+
+const estiloMiniEstatisticaValor = {
+  fontSize: "13px",
+  whiteSpace: "nowrap",
+};
+
 const estiloQuantidade = {
   marginTop: "8px",
-  color: "#D4A019",
+  color: "var(--cor-primaria)",
   fontWeight: "bold",
 };
 
 const estiloTabelaContainer = {
   overflowX: "auto",
-  border: "1px solid #eee",
+  border: "1px solid var(--cor-borda)",
   borderRadius: "10px",
 };
 
@@ -661,18 +841,31 @@ const estiloTabela = {
 };
 
 const estiloTh = {
-  background: "#111",
-  color: "white",
-  padding: "14px",
+  background: "#f9fafb",
+  color: "var(--cor-texto-secundario)",
+  padding: "12px 14px",
   textAlign: "left",
-  fontSize: "14px",
+  fontSize: "12px",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
   whiteSpace: "nowrap",
+  borderBottom: "1px solid var(--cor-borda)",
 };
 
 const estiloTd = {
   padding: "14px",
-  borderBottom: "1px solid #eee",
+  borderBottom: "1px solid var(--cor-borda)",
   whiteSpace: "nowrap",
+  fontSize: "14px",
+};
+
+const estiloRodapeInfo = {
+  marginTop: "20px",
+  padding: "14px 16px",
+  background: "#f9fafb",
+  borderRadius: "var(--raio-pequeno)",
+  color: "var(--cor-texto-secundario)",
+  fontSize: "13px",
 };
 
 export default DespesasExtras;

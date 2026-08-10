@@ -32,6 +32,14 @@ import {
   formatarMoeda,
   formatarNumero,
 } from "../utils/formatadores";
+import {
+  calcularResumoPorPeriodo,
+  chavePeriodo,
+  somarPeriodos,
+} from "../utils/resumoPeriodos";
+import PageHeader from "../components/PageHeader";
+import DateRangeFilter from "../components/DateRangeFilter";
+import KpiCard, { CORES_KPI } from "../components/KpiCard";
 
 function Caminhao() {
   const { placa } = useParams();
@@ -40,6 +48,9 @@ function Caminhao() {
   const [carregando, setCarregando] = useState(true);
   const [erroCarregamento, setErroCarregamento] = useState("");
   const [caminhao, setCaminhao] = useState(null);
+
+  const [filtroInicio, setFiltroInicio] = useState("");
+  const [filtroFim, setFiltroFim] = useState("");
 
   const [abaAtiva, setAbaAtiva] = useState("viagens");
 
@@ -365,6 +376,34 @@ function Caminhao() {
       </div>
     );
   }
+
+  function semanaNoFiltro(semana) {
+    if (filtroInicio && semana.inicio < filtroInicio) return false;
+    if (filtroFim && semana.inicio > filtroFim) return false;
+    return true;
+  }
+
+  const periodosCaminhao = calcularResumoPorPeriodo(
+    semanas,
+    semanasAbastecimento,
+    semanasDespesas,
+    { inicioFiltro: filtroInicio, fimFiltro: filtroFim }
+  );
+
+  const totalCaminhao = somarPeriodos(periodosCaminhao);
+
+  const periodoPorChave = new Map(
+    periodosCaminhao.map((periodo) => [
+      chavePeriodo(periodo.inicio, periodo.fim),
+      periodo,
+    ])
+  );
+
+  const semanasVisiveis = semanas.filter(semanaNoFiltro);
+  const semanasAbastecimentoVisiveis = semanasAbastecimento.filter(
+    semanaNoFiltro
+  );
+  const semanasDespesasVisiveis = semanasDespesas.filter(semanaNoFiltro);
 
   function abrirEdicaoCaminhao() {
     setDadosEdicao({
@@ -775,16 +814,37 @@ function Caminhao() {
 
   return (
     <div>
-      <button
-        onClick={() => navigate("/frota")}
-        style={estiloVoltar}
+      <PageHeader
+        breadcrumb={
+          <>
+            <button onClick={() => navigate("/frota")} style={estiloLinkBreadcrumb}>
+              Frota
+            </button>{" "}
+            &gt; {caminhao.modelo}
+          </>
+        }
+        titulo={`🚛 ${caminhao.modelo}`}
       >
-        ← Voltar para Frota
-      </button>
+        <DateRangeFilter
+          inicio={filtroInicio}
+          fim={filtroFim}
+          onAplicar={(inicio, fim) => {
+            setFiltroInicio(inicio);
+            setFiltroFim(fim);
+          }}
+          onLimpar={() => {
+            setFiltroInicio("");
+            setFiltroFim("");
+          }}
+        />
+      </PageHeader>
 
       <div style={estiloContainer}>
         <div style={estiloCabecalhoTitulo}>
-          <h1>🚛 {caminhao.modelo}</h1>
+          <div style={estiloTituloComBadge}>
+            <h2 style={{ margin: 0 }}>{caminhao.modelo}</h2>
+            <span style={estiloBadgeAtivo}>Ativo</span>
+          </div>
 
           <button
             style={estiloBotaoEditar}
@@ -882,7 +942,47 @@ function Caminhao() {
             </div>
           </div>
         )}
+      </div>
 
+      <div style={estiloGridKpis}>
+        <KpiCard
+          icone="🚚"
+          cor={CORES_KPI.verde}
+          rotulo="Viagens Realizadas"
+          valor={totalCaminhao.totalViagens}
+          legenda="Total no período"
+        />
+        <KpiCard
+          icone="💰"
+          cor={CORES_KPI.verde}
+          rotulo="Receita Bruta"
+          valor={formatarMoeda(totalCaminhao.receitaBruta)}
+          legenda="Total no período"
+        />
+        <KpiCard
+          icone="⛽"
+          cor={CORES_KPI.roxo}
+          rotulo="Combustível"
+          valor={formatarMoeda(totalCaminhao.totalCombustivel)}
+          legenda="Total no período"
+        />
+        <KpiCard
+          icone="👤"
+          cor={CORES_KPI.azul}
+          rotulo="Motoristas (10%)"
+          valor={formatarMoeda(totalCaminhao.pagamentoMotoristas)}
+          legenda="Total no período"
+        />
+        <KpiCard
+          icone="📈"
+          cor={CORES_KPI.verde}
+          rotulo="Lucro da Frota"
+          valor={formatarMoeda(totalCaminhao.lucro)}
+          legenda="Total no período"
+        />
+      </div>
+
+      <div style={estiloContainer}>
         <div style={estiloMenuAbas}>
 
 
@@ -998,20 +1098,23 @@ function Caminhao() {
                   </div>
                 )}
 
-                {semanas.length === 0 ? (
+                {semanasVisiveis.length === 0 ? (
                   <div style={estiloVazio}>
                     <h3>
-                      Nenhuma semana cadastrada
+                      {semanas.length === 0
+                        ? "Nenhuma semana cadastrada"
+                        : "Nenhuma semana no período selecionado"}
                     </h3>
 
                     <p>
-                      Clique em "+ Nova Semana" para
-                      começar a lançar as viagens.
+                      {semanas.length === 0
+                        ? 'Clique em "+ Nova Semana" para começar a lançar as viagens.'
+                        : "Ajuste o filtro de período para ver outras semanas."}
                     </p>
                   </div>
                 ) : (
                   <div style={estiloListaSemanas}>
-                    {semanas.map((semana) =>
+                    {semanasVisiveis.map((semana) =>
                       editandoSemanaViagens?.id === semana.id ? (
                         <div key={semana.id} style={estiloSemana}>
                           <div style={estiloCampos}>
@@ -1061,9 +1164,9 @@ function Caminhao() {
                       ) : (
                         <div
                           key={semana.id}
-                          style={estiloSemana}
+                          style={estiloSemanaRica}
                         >
-                          <div>
+                          <div style={estiloSemanaInfo}>
                             <p style={estiloLegenda}>
                               Período
                             </p>
@@ -1083,6 +1186,54 @@ function Caminhao() {
                                 : "viagens"}
                             </p>
                           </div>
+
+                          {(() => {
+                            const dadosPeriodo = periodoPorChave.get(
+                              chavePeriodo(semana.inicio, semana.fim)
+                            );
+
+                            return (
+                              <div style={estiloEstatisticasSemana}>
+                                <MiniEstatistica
+                                  titulo="Volume Entregue"
+                                  valor={formatarNumero(
+                                    dadosPeriodo?.volumeEntregue || 0
+                                  )}
+                                />
+                                <MiniEstatistica
+                                  titulo="Receita Bruta"
+                                  valor={formatarMoeda(
+                                    dadosPeriodo?.receitaBruta || 0
+                                  )}
+                                />
+                                <MiniEstatistica
+                                  titulo="Combustível"
+                                  valor={formatarMoeda(
+                                    dadosPeriodo?.totalCombustivel || 0
+                                  )}
+                                />
+                                <MiniEstatistica
+                                  titulo="Despesas Extras"
+                                  valor={formatarMoeda(
+                                    dadosPeriodo?.totalDespesasExtras || 0
+                                  )}
+                                />
+                                <MiniEstatistica
+                                  titulo="Motoristas (10%)"
+                                  valor={formatarMoeda(
+                                    dadosPeriodo?.pagamentoMotoristas || 0
+                                  )}
+                                />
+                                <MiniEstatistica
+                                  titulo="Lucro da Frota"
+                                  valor={formatarMoeda(
+                                    dadosPeriodo?.lucro || 0
+                                  )}
+                                  destaque
+                                />
+                              </div>
+                            );
+                          })()}
 
                           <div style={{ display: "flex", gap: "10px" }}>
                             <button
@@ -1475,12 +1626,14 @@ function Caminhao() {
 </div>
 
 
-    {semanasAbastecimento.length === 0 ? (
+    {semanasAbastecimentoVisiveis.length === 0 ? (
         <p style={estiloLegenda}>
-            Nenhuma semana cadastrada.
+            {semanasAbastecimento.length === 0
+              ? "Nenhuma semana cadastrada."
+              : "Nenhuma semana no período selecionado."}
         </p>
     ) : (
-        semanasAbastecimento
+        semanasAbastecimentoVisiveis
   .filter((semana) => {
     if (
       pesquisaInicioAbastecimento &&
@@ -2158,13 +2311,15 @@ function Caminhao() {
     </button>
   </div>
 )}
-{semanasDespesas.length === 0 ? (
+{semanasDespesasVisiveis.length === 0 ? (
   <p style={estiloLegenda}>
-    Nenhuma semana cadastrada.
+    {semanasDespesas.length === 0
+      ? "Nenhuma semana cadastrada."
+      : "Nenhuma semana no período selecionado."}
   </p>
 ) : (
   <div style={{ marginTop: "20px", marginBottom: "25px" }}>
-    {semanasDespesas.map((semana) =>
+    {semanasDespesasVisiveis.map((semana) =>
       editandoSemanaDespesa?.id === semana.id ? (
         <div
           key={semana.id}
@@ -2602,22 +2757,57 @@ function CardResumo({ titulo, valor }) {
   );
 }
 
+function MiniEstatistica({ titulo, valor, destaque }) {
+  return (
+    <div style={estiloMiniEstatistica}>
+      <span style={estiloMiniEstatisticaTitulo}>{titulo}</span>
+      <strong
+        style={{
+          ...estiloMiniEstatisticaValor,
+          color: destaque ? "var(--cor-primaria)" : "var(--cor-texto)",
+        }}
+      >
+        {valor}
+      </strong>
+    </div>
+  );
+}
+
+const estiloMiniEstatistica = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "3px",
+  minWidth: "90px",
+};
+
+const estiloMiniEstatisticaTitulo = {
+  fontSize: "11px",
+  color: "var(--cor-texto-secundario)",
+  whiteSpace: "nowrap",
+};
+
+const estiloMiniEstatisticaValor = {
+  fontSize: "13px",
+  whiteSpace: "nowrap",
+};
+
 // =========================
 // ESTILOS
 // =========================
 
 function estiloAba(ativa) {
   return {
-    padding: "15px 20px",
+    padding: "13px 18px",
     border: "none",
     borderBottom: ativa
-      ? "3px solid #D4A019"
+      ? "3px solid var(--cor-primaria)"
       : "3px solid transparent",
     background: "transparent",
     cursor: "pointer",
-    fontSize: "16px",
-    fontWeight: ativa ? "bold" : "normal",
-    color: ativa ? "#D4A019" : "#555",
+    fontSize: "15px",
+    fontWeight: ativa ? "700" : "500",
+    color: ativa ? "var(--cor-primaria)" : "var(--cor-texto-secundario)",
+    transition: "color 0.15s, border-color 0.15s",
   };
 }
 
@@ -2641,6 +2831,38 @@ const estiloCabecalhoTitulo = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: "20px",
+};
+
+const estiloLinkBreadcrumb = {
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+  padding: 0,
+  color: "var(--cor-texto-secundario)",
+  fontSize: "13px",
+  textDecoration: "underline",
+};
+
+const estiloTituloComBadge = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+};
+
+const estiloBadgeAtivo = {
+  background: "var(--cor-primaria-clara)",
+  color: "var(--cor-primaria-escura)",
+  fontSize: "11px",
+  fontWeight: "bold",
+  padding: "4px 10px",
+  borderRadius: "999px",
+};
+
+const estiloGridKpis = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+  gap: "16px",
+  marginBottom: "24px",
 };
 
 const estiloPlacaFixa = {
@@ -2690,21 +2912,21 @@ const estiloCabecalhoSecao = {
 };
 
 const estiloBotaoDourado = {
-  background: "#D4A019",
-  color: "#111",
+  background: "var(--cor-primaria)",
+  color: "white",
   border: "none",
   padding: "12px 20px",
-  borderRadius: "8px",
+  borderRadius: "var(--raio-pequeno)",
   cursor: "pointer",
   fontWeight: "bold",
 };
 
 const estiloBotaoEscuro = {
-  background: "#111",
+  background: "var(--cor-sidebar)",
   color: "white",
   border: "none",
   padding: "12px 20px",
-  borderRadius: "8px",
+  borderRadius: "var(--raio-pequeno)",
   cursor: "pointer",
 };
 
@@ -2818,9 +3040,31 @@ const estiloSemana = {
   gap: "20px",
 };
 
+const estiloSemanaRica = {
+  border: "1px solid var(--cor-borda)",
+  padding: "18px 20px",
+  borderRadius: "12px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "20px",
+  flexWrap: "wrap",
+};
+
+const estiloSemanaInfo = {
+  minWidth: "160px",
+};
+
+const estiloEstatisticasSemana = {
+  display: "flex",
+  gap: "22px",
+  flexWrap: "wrap",
+  flex: 1,
+};
+
 const estiloQuantidade = {
   marginTop: "8px",
-  color: "#D4A019",
+  color: "var(--cor-primaria)",
   fontWeight: "bold",
 };
 
@@ -2837,18 +3081,22 @@ const estiloTabela = {
 };
 
 const estiloTh = {
-  background: "#111",
-  color: "white",
-  padding: "14px",
+  background: "#f9fafb",
+  color: "var(--cor-texto-secundario)",
+  padding: "12px 14px",
   textAlign: "left",
-  fontSize: "14px",
+  fontSize: "12px",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
   whiteSpace: "nowrap",
+  borderBottom: "1px solid var(--cor-borda)",
 };
 
 const estiloTd = {
   padding: "14px",
-  borderBottom: "1px solid #eee",
+  borderBottom: "1px solid var(--cor-borda)",
   whiteSpace: "nowrap",
+  fontSize: "14px",
 };
 
 const estiloCardsResumo = {
@@ -2870,7 +3118,7 @@ const estiloCardResumo = {
 
 const estiloNumeroResumo = {
   fontSize: "24px",
-  color: "#D4A019",
+  color: "var(--cor-primaria)",
 };
 
 const estiloResumoFinanceiro = {
@@ -2886,7 +3134,7 @@ const estiloResumoFinanceiro = {
 
 const estiloValorTotal = {
   fontSize: "20px",
-  color: "#D4A019",
+  color: "var(--cor-primaria)",
 };
 
 export default Caminhao;

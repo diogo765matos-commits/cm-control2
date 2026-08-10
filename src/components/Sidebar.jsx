@@ -2,62 +2,61 @@ import { NavLink } from "react-router-dom";
 import logo from "../assets/logo.png";
 import "../styles/sidebar.css";
 
-function Sidebar({ onSair }) {
+const ITENS_MENU = [
+  { to: "/", rotulo: "Painel", icone: "🏠" },
+  { to: "/frota", rotulo: "Frota", icone: "🚛" },
+  { to: "/despesas-extras", rotulo: "Despesas Extras", icone: "🧾" },
+];
+
+function Sidebar({ onSair, email }) {
+  const inicial = email ? email.trim().charAt(0).toUpperCase() : "?";
+
   return (
     <aside className="sidebar">
-      <img src={logo} alt="C&M Control" className="logo" />
+      <div className="sidebar-topo">
+        <img src={logo} alt="C&M Control" className="logo" />
 
-      <h2>C&M Control</h2>
+        <div className="sidebar-marca">
+          <h2>C&amp;M Control</h2>
+          <span>Transportadora</span>
+        </div>
+      </div>
 
       <nav className="menu">
-
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            isActive ? "menu-link active" : "menu-link"
-          }
-        >
-          🏠 Painel
-        </NavLink>
-
-        <NavLink
-          to="/frota"
-          className={({ isActive }) =>
-            isActive ? "menu-link active" : "menu-link"
-          }
-        >
-          🚛 Frota
-        </NavLink>
-
-        <NavLink
-          to="/despesas-extras"
-          className={({ isActive }) =>
-            isActive ? "menu-link active" : "menu-link"
-          }
-        >
-          🧾 Despesas Extras
-        </NavLink>
-
+        {ITENS_MENU.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === "/"}
+            className={({ isActive }) =>
+              isActive ? "menu-link active" : "menu-link"
+            }
+          >
+            <span>{item.icone}</span>
+            {item.rotulo}
+          </NavLink>
+        ))}
       </nav>
 
-      {onSair && (
-        <button
-          onClick={onSair}
-          className="menu-link"
-          style={{
-            marginTop: "auto",
-            width: "100%",
-            border: "none",
-            background: "transparent",
-            textAlign: "left",
-            cursor: "pointer",
-            fontSize: "inherit",
-            fontFamily: "inherit",
-          }}
-        >
-          🚪 Sair
-        </button>
-      )}
+      <div className="sidebar-rodape">
+        {email && (
+          <div className="sidebar-usuario">
+            <div className="sidebar-usuario-avatar">{inicial}</div>
+
+            <div className="sidebar-usuario-info">
+              <strong>Administrador</strong>
+              <span title={email}>{email}</span>
+            </div>
+          </div>
+        )}
+
+        {onSair && (
+          <button onClick={onSair} className="menu-link">
+            <span>🚪</span>
+            Sair
+          </button>
+        )}
+      </div>
     </aside>
   );
 }
