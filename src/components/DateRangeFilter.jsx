@@ -69,6 +69,7 @@ const estiloCaixaData = {
   border: "1px solid var(--cor-borda)",
   borderRadius: "var(--raio-pequeno)",
   padding: "8px 14px",
+  flexWrap: "wrap",
 };
 
 const estiloIconeCalendario = {

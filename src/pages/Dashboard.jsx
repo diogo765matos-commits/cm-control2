@@ -301,7 +301,7 @@ const estiloGridKpis = {
 
 const estiloGridGraficos = {
   display: "grid",
-  gridTemplateColumns: "1.3fr 1fr",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
   gap: "20px",
   marginBottom: "24px",
   alignItems: "stretch",

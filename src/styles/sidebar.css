@@ -119,3 +119,97 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.sidebar-fechar {
+  display: none;
+}
+
+.topo-mobile {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .topo-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--cor-sidebar);
+    padding: 14px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+  }
+
+  .topo-mobile-marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .topo-mobile-marca img {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .topo-mobile-marca span {
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .botao-hamburguer {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 6px 8px;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 110;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .sidebar.aberta {
+    transform: translateX(0);
+  }
+
+  .sidebar-fechar {
+    display: block;
+    position: absolute;
+    top: 18px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: #b8c2d6;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+
+  .sidebar-backdrop.visivel {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 105;
+  }
+}

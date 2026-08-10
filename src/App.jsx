@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import Sidebar from "./components/Sidebar";
 import Login from "./pages/Login";
+import logo from "./assets/logo.png";
 
 import Dashboard from "./pages/Dashboard";
 import Frota from "./pages/Frota";
@@ -13,6 +14,7 @@ import { auth } from "./lib/supabase";
 
 function App() {
   const [sessao, setSessao] = useState(() => auth.sessaoAtual());
+  const [menuAberto, setMenuAberto] = useState(false);
 
   if (!sessao) {
     return <Login onLogin={() => setSessao(auth.sessaoAtual())} />;
@@ -26,7 +28,34 @@ function App() {
   return (
     <BrowserRouter>
       <div className="app">
-        <Sidebar onSair={sair} email={sessao?.user?.email} />
+        <div className="topo-mobile">
+          <div className="topo-mobile-marca">
+            <img src={logo} alt="C&M Control" />
+            <span>C&amp;M Control</span>
+          </div>
+
+          <button
+            className="botao-hamburguer"
+            onClick={() => setMenuAberto(true)}
+            aria-label="Abrir menu"
+          >
+            ☰
+          </button>
+        </div>
+
+        <Sidebar
+          onSair={sair}
+          email={sessao?.user?.email}
+          aberto={menuAberto}
+          onFechar={() => setMenuAberto(false)}
+        />
+
+        <div
+          className={
+            menuAberto ? "sidebar-backdrop visivel" : "sidebar-backdrop"
+          }
+          onClick={() => setMenuAberto(false)}
+        />
 
         <div className="content">
           <Routes>

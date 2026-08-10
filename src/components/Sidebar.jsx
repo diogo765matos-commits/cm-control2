@@ -8,11 +8,19 @@ const ITENS_MENU = [
   { to: "/despesas-extras", rotulo: "Despesas Extras", icone: "🧾" },
 ];
 
-function Sidebar({ onSair, email }) {
+function Sidebar({ onSair, email, aberto, onFechar }) {
   const inicial = email ? email.trim().charAt(0).toUpperCase() : "?";
 
   return (
-    <aside className="sidebar">
+    <aside className={aberto ? "sidebar aberta" : "sidebar"}>
+      <button
+        className="sidebar-fechar"
+        onClick={onFechar}
+        aria-label="Fechar menu"
+      >
+        ✕
+      </button>
+
       <div className="sidebar-topo">
         <img src={logo} alt="C&M Control" className="logo" />
 
@@ -28,6 +36,7 @@ function Sidebar({ onSair, email }) {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
+            onClick={onFechar}
             className={({ isActive }) =>
               isActive ? "menu-link active" : "menu-link"
             }
