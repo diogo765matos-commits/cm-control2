@@ -47,3 +47,13 @@ export async function excluirDespesaGeral(semana, idDespesa) {
 export async function excluirSemanaDespesasGerais(idSemana) {
   await db.remove("despesas_gerais_semanas", `id=eq.${idSemana}`);
 }
+
+export async function atualizarSemanaDespesasGerais(idSemana, dados) {
+  const [semana] = await db.update(
+    "despesas_gerais_semanas",
+    `id=eq.${idSemana}`,
+    dados
+  );
+
+  return semana;
+}

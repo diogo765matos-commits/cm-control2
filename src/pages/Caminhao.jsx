@@ -8,6 +8,7 @@ import {
   adicionarViagem as adicionarViagemApi,
   excluirViagem as excluirViagemApi,
   excluirSemanaViagens as excluirSemanaViagensApi,
+  atualizarSemanaViagens as atualizarSemanaViagensApi,
 } from "../data/viagens";
 import {
   getSemanasAbastecimento,
@@ -15,6 +16,7 @@ import {
   adicionarAbastecimento as adicionarAbastecimentoApi,
   excluirAbastecimento as excluirAbastecimentoApi,
   excluirSemanaAbastecimento as excluirSemanaAbastecimentoApi,
+  atualizarSemanaAbastecimento as atualizarSemanaAbastecimentoApi,
 } from "../data/abastecimentos";
 import {
   getSemanasDespesas,
@@ -22,6 +24,7 @@ import {
   adicionarDespesa as adicionarDespesaApi,
   excluirDespesa as excluirDespesaApi,
   excluirSemanaDespesas as excluirSemanaDespesasApi,
+  atualizarSemanaDespesas as atualizarSemanaDespesasApi,
 } from "../data/despesas";
 import {
   converterNumero,
@@ -45,6 +48,8 @@ function Caminhao() {
   // ======================
 
   const [semanasDespesas, setSemanasDespesas] = useState([]);
+
+  const [editandoSemanaDespesa, setEditandoSemanaDespesa] = useState(null);
 
   const [novaDespesa, setNovaDespesa] = useState({
     data: "",
@@ -80,6 +85,45 @@ function Caminhao() {
       setMostrarNovaSemanaDespesa(false);
     } catch (e) {
       alert("Não foi possível criar a semana: " + e.message);
+    }
+  }
+
+  function abrirEdicaoSemanaDespesa(semana) {
+    setEditandoSemanaDespesa({
+      id: semana.id,
+      inicio: semana.inicio,
+      fim: semana.fim,
+    });
+  }
+
+  async function salvarEdicaoSemanaDespesa() {
+    if (!editandoSemanaDespesa.inicio || !editandoSemanaDespesa.fim) {
+      alert("Informe o início e o fim da semana.");
+      return;
+    }
+
+    try {
+      const atualizada = await atualizarSemanaDespesasApi(
+        editandoSemanaDespesa.id,
+        {
+          inicio: editandoSemanaDespesa.inicio,
+          fim: editandoSemanaDespesa.fim,
+        }
+      );
+
+      setSemanasDespesas((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
+
+      if (semanaDespesaAberta?.id === atualizada.id) {
+        setSemanaDespesaAberta(atualizada);
+      }
+
+      setEditandoSemanaDespesa(null);
+    } catch (e) {
+      alert("Não foi possível salvar a alteração: " + e.message);
     }
   }
 
@@ -180,6 +224,8 @@ function Caminhao() {
 
   const [semanas, setSemanas] = useState([]);
 
+  const [editandoSemanaViagens, setEditandoSemanaViagens] = useState(null);
+
   const [mostrarNovaSemana, setMostrarNovaSemana] = useState(false);
 
   const [inicioSemana, setInicioSemana] = useState("");
@@ -205,6 +251,9 @@ function Caminhao() {
     useState(false);
 
   const [semanasAbastecimento, setSemanasAbastecimento] = useState([]);
+
+  const [editandoSemanaAbastecimento, setEditandoSemanaAbastecimento] =
+    useState(null);
 
   const [semanaAbastecimentoAberta, setSemanaAbastecimentoAberta] =
     useState(null);
@@ -374,6 +423,45 @@ function Caminhao() {
     }
   }
 
+  function abrirEdicaoSemanaViagens(semana) {
+    setEditandoSemanaViagens({
+      id: semana.id,
+      inicio: semana.inicio,
+      fim: semana.fim,
+    });
+  }
+
+  async function salvarEdicaoSemanaViagens() {
+    if (!editandoSemanaViagens.inicio || !editandoSemanaViagens.fim) {
+      alert("Informe o início e o fim da semana.");
+      return;
+    }
+
+    try {
+      const atualizada = await atualizarSemanaViagensApi(
+        editandoSemanaViagens.id,
+        {
+          inicio: editandoSemanaViagens.inicio,
+          fim: editandoSemanaViagens.fim,
+        }
+      );
+
+      setSemanas((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
+
+      if (semanaAberta?.id === atualizada.id) {
+        setSemanaAberta(atualizada);
+      }
+
+      setEditandoSemanaViagens(null);
+    } catch (e) {
+      alert("Não foi possível salvar a alteração: " + e.message);
+    }
+  }
+
   async function adicionarViagem() {
     if (!semanaAberta) return;
 
@@ -490,6 +578,44 @@ function Caminhao() {
       setMostrarNovaSemanaAbastecimento(false);
     } catch (e) {
       alert("Não foi possível criar a semana: " + e.message);
+    }
+  }
+
+  function abrirEdicaoSemanaAbastecimento(semana) {
+    setEditandoSemanaAbastecimento({
+      id: semana.id,
+      inicio: semana.inicio,
+      fim: semana.fim,
+    });
+  }
+
+  async function salvarEdicaoSemanaAbastecimento() {
+    if (
+      !editandoSemanaAbastecimento.inicio ||
+      !editandoSemanaAbastecimento.fim
+    ) {
+      alert("Informe o início e o fim da semana.");
+      return;
+    }
+
+    try {
+      const atualizada = await atualizarSemanaAbastecimentoApi(
+        editandoSemanaAbastecimento.id,
+        {
+          inicio: editandoSemanaAbastecimento.inicio,
+          fim: editandoSemanaAbastecimento.fim,
+        }
+      );
+
+      setSemanasAbastecimento((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
+
+      setEditandoSemanaAbastecimento(null);
+    } catch (e) {
+      alert("Não foi possível salvar a alteração: " + e.message);
     }
   }
 
@@ -885,42 +1011,101 @@ function Caminhao() {
                   </div>
                 ) : (
                   <div style={estiloListaSemanas}>
-                    {semanas.map((semana) => (
-                      <div
-                        key={semana.id}
-                        style={estiloSemana}
-                      >
-                        <div>
-                          <p style={estiloLegenda}>
-                            Período
-                          </p>
+                    {semanas.map((semana) =>
+                      editandoSemanaViagens?.id === semana.id ? (
+                        <div key={semana.id} style={estiloSemana}>
+                          <div style={estiloCampos}>
+                            <Campo
+                              titulo="Início"
+                              type="date"
+                              value={editandoSemanaViagens.inicio}
+                              onChange={(e) =>
+                                setEditandoSemanaViagens({
+                                  ...editandoSemanaViagens,
+                                  inicio: e.target.value,
+                                })
+                              }
+                            />
 
-                          <h3>
-                            {formatarData(
-                              semana.inicio
-                            )}{" "}
-                            até{" "}
-                            {formatarData(semana.fim)}
-                          </h3>
+                            <Campo
+                              titulo="Fim"
+                              type="date"
+                              value={editandoSemanaViagens.fim}
+                              onChange={(e) =>
+                                setEditandoSemanaViagens({
+                                  ...editandoSemanaViagens,
+                                  fim: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
 
-                          <p style={estiloQuantidade}>
-                            {semana.viagens.length}{" "}
-                            {semana.viagens.length === 1
-                              ? "viagem"
-                              : "viagens"}
-                          </p>
+                          <div style={{ display: "flex", gap: "10px" }}>
+                            <button
+                              style={estiloBotaoCancelar}
+                              onClick={() =>
+                                setEditandoSemanaViagens(null)
+                              }
+                            >
+                              Cancelar
+                            </button>
+
+                            <button
+                              style={estiloBotaoDourado}
+                              onClick={salvarEdicaoSemanaViagens}
+                            >
+                              Salvar
+                            </button>
+                          </div>
                         </div>
-
-                        <button
-                          style={estiloBotaoEscuro}
-                          onClick={() =>
-                            setSemanaAberta(semana)
-                          }
+                      ) : (
+                        <div
+                          key={semana.id}
+                          style={estiloSemana}
                         >
-                          Abrir →
-                        </button>
-                      </div>
-                    ))}
+                          <div>
+                            <p style={estiloLegenda}>
+                              Período
+                            </p>
+
+                            <h3>
+                              {formatarData(
+                                semana.inicio
+                              )}{" "}
+                              até{" "}
+                              {formatarData(semana.fim)}
+                            </h3>
+
+                            <p style={estiloQuantidade}>
+                              {semana.viagens.length}{" "}
+                              {semana.viagens.length === 1
+                                ? "viagem"
+                                : "viagens"}
+                            </p>
+                          </div>
+
+                          <div style={{ display: "flex", gap: "10px" }}>
+                            <button
+                              style={estiloBotaoEditar}
+                              onClick={() =>
+                                abrirEdicaoSemanaViagens(semana)
+                              }
+                            >
+                              ✏️
+                            </button>
+
+                            <button
+                              style={estiloBotaoEscuro}
+                              onClick={() =>
+                                setSemanaAberta(semana)
+                              }
+                            >
+                              Abrir →
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
               </>
@@ -1313,7 +1498,60 @@ function Caminhao() {
 
     return true;
   })
-  .map((semana) => (
+  .map((semana) =>
+    editandoSemanaAbastecimento?.id === semana.id ? (
+        <div
+            key={semana.id}
+            style={{
+                padding: "18px",
+                border: "1px solid #ddd",
+                borderRadius: "10px",
+                marginTop: "12px",
+            }}
+        >
+            <div style={estiloCampos}>
+                <Campo
+                    titulo="Início"
+                    type="date"
+                    value={editandoSemanaAbastecimento.inicio}
+                    onChange={(e) =>
+                        setEditandoSemanaAbastecimento({
+                            ...editandoSemanaAbastecimento,
+                            inicio: e.target.value,
+                        })
+                    }
+                />
+
+                <Campo
+                    titulo="Fim"
+                    type="date"
+                    value={editandoSemanaAbastecimento.fim}
+                    onChange={(e) =>
+                        setEditandoSemanaAbastecimento({
+                            ...editandoSemanaAbastecimento,
+                            fim: e.target.value,
+                        })
+                    }
+                />
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+                <button
+                    style={estiloBotaoCancelar}
+                    onClick={() => setEditandoSemanaAbastecimento(null)}
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    style={estiloBotaoDourado}
+                    onClick={salvarEdicaoSemanaAbastecimento}
+                >
+                    Salvar
+                </button>
+            </div>
+        </div>
+    ) : (
 
             <div
                 key={semana.id}
@@ -1338,19 +1576,31 @@ function Caminhao() {
                     </p>
                 </div>
 
-                <button
-                    style={estiloBotaoDourado}
-                    onClick={() => {
+                <div style={{ display: "flex", gap: "10px" }}>
+                    <button
+                        style={estiloBotaoEditar}
+                        onClick={() =>
+                            abrirEdicaoSemanaAbastecimento(semana)
+                        }
+                    >
+                        ✏️
+                    </button>
+
+                    <button
+                        style={estiloBotaoDourado}
+                        onClick={() => {
     setSemanaAbastecimentoAberta(semana.id);
 
 }}
-                >
-                    Abrir →
-                </button>
+                    >
+                        Abrir →
+                    </button>
+                </div>
 
             </div>
 
-        ))
+        )
+    )
     )}
 
 </div>
@@ -1914,33 +2164,94 @@ function Caminhao() {
   </p>
 ) : (
   <div style={{ marginTop: "20px", marginBottom: "25px" }}>
-    {semanasDespesas.map((semana) => (
-      <div
-        key={semana.id}
-        style={{
-          ...estiloFormulario,
-          marginBottom: "15px",
-        }}
-      >
-        <h3>
-          {formatarData(semana.inicio)} até {formatarData(semana.fim)}
-        </h3>
-
-        <p style={estiloLegenda}>
-          {semana.despesas.length}{" "}
-          {semana.despesas.length === 1
-            ? "despesa cadastrada"
-            : "despesas cadastradas"}
-        </p>
-
-        <button
-          style={estiloBotaoDourado}
-          onClick={() => setSemanaDespesaAberta(semana)}
+    {semanasDespesas.map((semana) =>
+      editandoSemanaDespesa?.id === semana.id ? (
+        <div
+          key={semana.id}
+          style={{
+            ...estiloFormulario,
+            marginBottom: "15px",
+          }}
         >
-          Abrir Semana
-        </button>
-      </div>
-    ))}
+          <div style={estiloCampos}>
+            <Campo
+              titulo="Início"
+              type="date"
+              value={editandoSemanaDespesa.inicio}
+              onChange={(e) =>
+                setEditandoSemanaDespesa({
+                  ...editandoSemanaDespesa,
+                  inicio: e.target.value,
+                })
+              }
+            />
+
+            <Campo
+              titulo="Fim"
+              type="date"
+              value={editandoSemanaDespesa.fim}
+              onChange={(e) =>
+                setEditandoSemanaDespesa({
+                  ...editandoSemanaDespesa,
+                  fim: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div style={estiloAcoesFormulario}>
+            <button
+              style={estiloBotaoCancelar}
+              onClick={() => setEditandoSemanaDespesa(null)}
+            >
+              Cancelar
+            </button>
+
+            <button
+              style={estiloBotaoDourado}
+              onClick={salvarEdicaoSemanaDespesa}
+            >
+              Salvar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          key={semana.id}
+          style={{
+            ...estiloFormulario,
+            marginBottom: "15px",
+          }}
+        >
+          <h3>
+            {formatarData(semana.inicio)} até {formatarData(semana.fim)}
+          </h3>
+
+          <p style={estiloLegenda}>
+            {semana.despesas.length}{" "}
+            {semana.despesas.length === 1
+              ? "despesa cadastrada"
+              : "despesas cadastradas"}
+          </p>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              style={estiloBotaoEditar}
+              onClick={() => abrirEdicaoSemanaDespesa(semana)}
+            >
+              ✏️ Editar Período
+            </button>
+
+            <button
+              style={estiloBotaoDourado}
+              onClick={() => setSemanaDespesaAberta(semana)}
+            >
+              Abrir Semana
+            </button>
+          </div>
+        </div>
+      )
+    )}
   </div>
 )}
 {semanaDespesaAberta && (

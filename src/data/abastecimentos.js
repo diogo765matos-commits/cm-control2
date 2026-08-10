@@ -51,3 +51,13 @@ export async function excluirAbastecimento(semana, idAbastecimento) {
 export async function excluirSemanaAbastecimento(idSemana) {
   await db.remove("abastecimento_semanas", `id=eq.${idSemana}`);
 }
+
+export async function atualizarSemanaAbastecimento(idSemana, dados) {
+  const [semana] = await db.update(
+    "abastecimento_semanas",
+    `id=eq.${idSemana}`,
+    dados
+  );
+
+  return semana;
+}

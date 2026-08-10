@@ -48,3 +48,13 @@ export async function excluirViagem(semana, idViagem) {
 export async function excluirSemanaViagens(idSemana) {
   await db.remove("viagens_semanas", `id=eq.${idSemana}`);
 }
+
+export async function atualizarSemanaViagens(idSemana, dados) {
+  const [semana] = await db.update(
+    "viagens_semanas",
+    `id=eq.${idSemana}`,
+    dados
+  );
+
+  return semana;
+}

@@ -5,6 +5,7 @@ import {
   adicionarDespesaGeral,
   excluirDespesaGeral,
   excluirSemanaDespesasGerais,
+  atualizarSemanaDespesasGerais,
 } from "../data/despesasGerais";
 import { formatarData } from "../utils/formatadores";
 
@@ -18,6 +19,8 @@ function DespesasExtras() {
   const [mostrarNovaSemana, setMostrarNovaSemana] = useState(false);
   const [inicioSemana, setInicioSemana] = useState("");
   const [fimSemana, setFimSemana] = useState("");
+
+  const [editandoSemana, setEditandoSemana] = useState(null);
 
   const [novaDespesa, setNovaDespesa] = useState({
     data: "",
@@ -57,6 +60,38 @@ function DespesasExtras() {
       setMostrarNovaSemana(false);
     } catch (e) {
       alert("Não foi possível criar a semana: " + e.message);
+    }
+  }
+
+  function abrirEdicaoSemana(semana) {
+    setEditandoSemana({
+      id: semana.id,
+      inicio: semana.inicio,
+      fim: semana.fim,
+    });
+  }
+
+  async function salvarEdicaoSemana() {
+    if (!editandoSemana.inicio || !editandoSemana.fim) {
+      alert("Informe o início e o fim da semana.");
+      return;
+    }
+
+    try {
+      const atualizada = await atualizarSemanaDespesasGerais(
+        editandoSemana.id,
+        { inicio: editandoSemana.inicio, fim: editandoSemana.fim }
+      );
+
+      setSemanas((atuais) =>
+        atuais.map((semana) =>
+          semana.id === atualizada.id ? atualizada : semana
+        )
+      );
+
+      setEditandoSemana(null);
+    } catch (e) {
+      alert("Não foi possível salvar a alteração: " + e.message);
     }
   }
 
@@ -218,32 +253,87 @@ function DespesasExtras() {
               </div>
             ) : (
               <div style={estiloListaSemanas}>
-                {semanas.map((semana) => (
-                  <div key={semana.id} style={estiloSemana}>
-                    <div>
-                      <p style={estiloLegenda}>Período</p>
+                {semanas.map((semana) =>
+                  editandoSemana?.id === semana.id ? (
+                    <div key={semana.id} style={estiloSemana}>
+                      <div style={estiloCampos}>
+                        <Campo
+                          titulo="Início"
+                          type="date"
+                          value={editandoSemana.inicio}
+                          onChange={(e) =>
+                            setEditandoSemana({
+                              ...editandoSemana,
+                              inicio: e.target.value,
+                            })
+                          }
+                        />
 
-                      <h3>
-                        {formatarData(semana.inicio)} até{" "}
-                        {formatarData(semana.fim)}
-                      </h3>
+                        <Campo
+                          titulo="Fim"
+                          type="date"
+                          value={editandoSemana.fim}
+                          onChange={(e) =>
+                            setEditandoSemana({
+                              ...editandoSemana,
+                              fim: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
 
-                      <p style={estiloQuantidade}>
-                        {semana.despesas.length}{" "}
-                        {semana.despesas.length === 1
-                          ? "despesa"
-                          : "despesas"}
-                      </p>
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button
+                          style={estiloBotaoCancelar}
+                          onClick={() => setEditandoSemana(null)}
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          style={estiloBotaoDourado}
+                          onClick={salvarEdicaoSemana}
+                        >
+                          Salvar
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    <div key={semana.id} style={estiloSemana}>
+                      <div>
+                        <p style={estiloLegenda}>Período</p>
 
-                    <button
-                      style={estiloBotaoEscuro}
-                      onClick={() => setSemanaAberta(semana)}
-                    >
-                      Abrir →
-                    </button>
-                  </div>
-                ))}
+                        <h3>
+                          {formatarData(semana.inicio)} até{" "}
+                          {formatarData(semana.fim)}
+                        </h3>
+
+                        <p style={estiloQuantidade}>
+                          {semana.despesas.length}{" "}
+                          {semana.despesas.length === 1
+                            ? "despesa"
+                            : "despesas"}
+                        </p>
+                      </div>
+
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button
+                          style={estiloBotaoEditar}
+                          onClick={() => abrirEdicaoSemana(semana)}
+                        >
+                          ✏️
+                        </button>
+
+                        <button
+                          style={estiloBotaoEscuro}
+                          onClick={() => setSemanaAberta(semana)}
+                        >
+                          Abrir →
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             )}
           </>
@@ -506,6 +596,16 @@ const estiloBotaoEscuro = {
   padding: "12px 20px",
   borderRadius: "8px",
   cursor: "pointer",
+};
+
+const estiloBotaoEditar = {
+  background: "white",
+  color: "#111",
+  border: "1px solid #ddd",
+  padding: "10px 18px",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontWeight: "bold",
 };
 
 const estiloBotaoVoltarSemana = {
