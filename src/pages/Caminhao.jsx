@@ -1,6 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCaminhoes, atualizarCaminhao, FROTAS } from "../data/caminhoes";
+import {
+  getCaminhoes,
+  atualizarCaminhao,
+  adicionarDocumento as adicionarDocumentoApi,
+  excluirDocumento as excluirDocumentoApi,
+  FROTAS,
+} from "../data/caminhoes";
 import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
 import {
   getSemanasViagens,
@@ -348,6 +354,22 @@ function Caminhao() {
     frota: "",
   });
 
+  // ======================
+  // DOCUMENTAÇÃO
+  // ======================
+
+  const [editandoDocumentacao, setEditandoDocumentacao] = useState(false);
+
+  const [dadosDocumentacao, setDadosDocumentacao] = useState({
+    cnh: "",
+    cpf: "",
+    telefone: "",
+  });
+
+  const [novoDocumentoNome, setNovoDocumentoNome] = useState("");
+  const [arquivoDocumento, setArquivoDocumento] = useState(null);
+  const [enviandoDocumento, setEnviandoDocumento] = useState(false);
+
   if (carregando) {
     return <p>Carregando...</p>;
   }
@@ -432,6 +454,85 @@ function Caminhao() {
       setEditandoCaminhao(false);
     } catch (e) {
       alert("Não foi possível salvar as alterações: " + e.message);
+    }
+  }
+
+  function abrirEdicaoDocumentacao() {
+    setDadosDocumentacao({
+      cnh: caminhao.motorista_cnh || "",
+      cpf: caminhao.motorista_cpf || "",
+      telefone: caminhao.motorista_telefone || "",
+    });
+
+    setEditandoDocumentacao(true);
+  }
+
+  async function salvarEdicaoDocumentacao() {
+    try {
+      const atualizado = await atualizarCaminhao(caminhao.id, {
+        motorista_cnh: dadosDocumentacao.cnh,
+        motorista_cpf: dadosDocumentacao.cpf,
+        motorista_telefone: dadosDocumentacao.telefone,
+      });
+
+      setCaminhao(atualizado);
+      setEditandoDocumentacao(false);
+    } catch (e) {
+      alert("Não foi possível salvar as alterações: " + e.message);
+    }
+  }
+
+  async function enviarDocumento() {
+    if (!novoDocumentoNome.trim()) {
+      alert("Dê um nome para o documento (ex: CNH, CRLV).");
+      return;
+    }
+
+    if (!arquivoDocumento) {
+      alert("Escolha um arquivo para enviar.");
+      return;
+    }
+
+    setEnviandoDocumento(true);
+
+    try {
+      const atualizado = await adicionarDocumentoApi(
+        caminhao.id,
+        caminhao.documentos,
+        novoDocumentoNome.trim(),
+        arquivoDocumento
+      );
+
+      setCaminhao(atualizado);
+      setNovoDocumentoNome("");
+      setArquivoDocumento(null);
+
+      const campoArquivo = document.getElementById("campo-arquivo-documento");
+      if (campoArquivo) campoArquivo.value = "";
+    } catch (e) {
+      alert("Não foi possível enviar o documento: " + e.message);
+    } finally {
+      setEnviandoDocumento(false);
+    }
+  }
+
+  async function removerDocumento(documentoId) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir este documento?"
+    );
+
+    if (!confirmar) return;
+
+    try {
+      const atualizado = await excluirDocumentoApi(
+        caminhao.id,
+        caminhao.documentos,
+        documentoId
+      );
+
+      setCaminhao(atualizado);
+    } catch (e) {
+      alert("Não foi possível excluir o documento: " + e.message);
     }
   }
 
@@ -1016,6 +1117,13 @@ function Caminhao() {
   style={estiloAba(abaAtiva === "financeiro")}
 >
   💰 Financeiro
+</button>
+
+<button
+  onClick={() => setAbaAtiva("documentacao")}
+  style={estiloAba(abaAtiva === "documentacao")}
+>
+  📋 Documentação
 </button>
         </div>
 
@@ -2712,9 +2820,191 @@ function Caminhao() {
   );
 
 })()}
+
+        {/* DOCUMENTAÇÃO */}
+
+        {abaAtiva === "documentacao" && (
+          <div>
+            <h2>Dados do Motorista</h2>
+            <p style={estiloLegenda}>
+              Nome, CNH, CPF e telefone do motorista responsável por este
+              caminhão.
+            </p>
+
+            {editandoDocumentacao ? (
+              <div style={{ ...estiloFormulario, marginTop: "16px" }}>
+                <h3>Editar Dados do Motorista</h3>
+
+                <div style={estiloCampos}>
+                  <div style={estiloLabel}>
+                    Nome
+                    <span style={estiloPlacaFixa}>{caminhao.motorista}</span>
+                  </div>
+
+                  <Campo
+                    titulo="CNH"
+                    value={dadosDocumentacao.cnh}
+                    onChange={(e) =>
+                      setDadosDocumentacao({
+                        ...dadosDocumentacao,
+                        cnh: e.target.value,
+                      })
+                    }
+                  />
+
+                  <Campo
+                    titulo="CPF"
+                    value={dadosDocumentacao.cpf}
+                    onChange={(e) =>
+                      setDadosDocumentacao({
+                        ...dadosDocumentacao,
+                        cpf: e.target.value,
+                      })
+                    }
+                  />
+
+                  <Campo
+                    titulo="Telefone"
+                    value={dadosDocumentacao.telefone}
+                    onChange={(e) =>
+                      setDadosDocumentacao({
+                        ...dadosDocumentacao,
+                        telefone: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div style={estiloAcoesFormulario}>
+                  <button
+                    style={estiloBotaoCancelar}
+                    onClick={() => setEditandoDocumentacao(false)}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    style={estiloBotaoDourado}
+                    onClick={salvarEdicaoDocumentacao}
+                  >
+                    Salvar Alterações
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ ...estiloCabecalhoTitulo, marginTop: "16px" }}>
+                <div style={estiloInformacoes}>
+                  <div>
+                    <p style={estiloLegenda}>Nome</p>
+                    <strong>{caminhao.motorista}</strong>
+                  </div>
+
+                  <div>
+                    <p style={estiloLegenda}>CNH</p>
+                    <strong>{caminhao.motorista_cnh || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <p style={estiloLegenda}>CPF</p>
+                    <strong>{caminhao.motorista_cpf || "-"}</strong>
+                  </div>
+
+                  <div>
+                    <p style={estiloLegenda}>Telefone</p>
+                    <strong>{caminhao.motorista_telefone || "-"}</strong>
+                  </div>
+                </div>
+
+                <button style={estiloBotaoEditar} onClick={abrirEdicaoDocumentacao}>
+                  ✏️ Editar
+                </button>
+              </div>
+            )}
+
+            <h2 style={{ marginTop: "35px" }}>Fotos de Documentos</h2>
+            <p style={estiloLegenda}>
+              CNH do motorista, documento do veículo (CRLV) ou qualquer outro
+              arquivo que valha a pena guardar aqui.
+            </p>
+
+            <div style={estiloGridDocumentos}>
+              {(caminhao.documentos || []).map((doc) => (
+                <div key={doc.id} style={estiloCardDocumento}>
+                  {ehImagem(doc.url) ? (
+                    <img
+                      src={doc.url}
+                      alt={doc.nome}
+                      style={estiloImagemDocumento}
+                    />
+                  ) : (
+                    <div style={estiloIconeArquivo}>📄</div>
+                  )}
+
+                  <div style={estiloInfoDocumento}>
+                    <strong>{doc.nome}</strong>
+                    <span style={estiloLegenda}>
+                      {formatarData((doc.criadoEm || "").slice(0, 10))}
+                    </span>
+                  </div>
+
+                  <div style={estiloAcoesDocumento}>
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={estiloBotaoVerDocumento}
+                    >
+                      Ver
+                    </a>
+
+                    <button
+                      style={estiloBotaoExcluirDocumento}
+                      onClick={() => removerDocumento(doc.id)}
+                    >
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <div style={estiloCardNovoDocumento}>
+                <span style={{ fontSize: "28px" }}>📎</span>
+
+                <input
+                  type="text"
+                  placeholder="Nome do documento (ex: CNH, CRLV)"
+                  value={novoDocumentoNome}
+                  onChange={(e) => setNovoDocumentoNome(e.target.value)}
+                  style={estiloInput}
+                />
+
+                <input
+                  id="campo-arquivo-documento"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) =>
+                    setArquivoDocumento(e.target.files[0] || null)
+                  }
+                />
+
+                <button
+                  style={estiloBotaoDourado}
+                  disabled={enviandoDocumento}
+                  onClick={enviarDocumento}
+                >
+                  {enviandoDocumento ? "Enviando..." : "+ Adicionar Documento"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function ehImagem(url) {
+  return /\.(png|jpe?g|gif|webp|heic)(\?|$)/i.test(url || "");
 }
 
 // =========================
@@ -2789,6 +3079,88 @@ const estiloMiniEstatisticaTitulo = {
 const estiloMiniEstatisticaValor = {
   fontSize: "13px",
   whiteSpace: "nowrap",
+};
+
+const estiloGridDocumentos = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+  gap: "16px",
+  marginTop: "16px",
+};
+
+const estiloCardDocumento = {
+  border: "1px solid var(--cor-borda)",
+  borderRadius: "var(--raio-pequeno)",
+  overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+  background: "white",
+};
+
+const estiloImagemDocumento = {
+  width: "100%",
+  height: "140px",
+  objectFit: "cover",
+  background: "#f3f5f9",
+};
+
+const estiloIconeArquivo = {
+  width: "100%",
+  height: "140px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "42px",
+  background: "#f3f5f9",
+};
+
+const estiloInfoDocumento = {
+  padding: "10px 14px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+};
+
+const estiloAcoesDocumento = {
+  display: "flex",
+  gap: "8px",
+  padding: "0 14px 14px",
+};
+
+const estiloBotaoVerDocumento = {
+  flex: 1,
+  textAlign: "center",
+  background: "var(--cor-sidebar)",
+  color: "white",
+  border: "none",
+  padding: "8px 10px",
+  borderRadius: "var(--raio-pequeno)",
+  cursor: "pointer",
+  fontSize: "13px",
+  textDecoration: "none",
+};
+
+const estiloBotaoExcluirDocumento = {
+  background: "#fee2e2",
+  color: "#dc2626",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: "var(--raio-pequeno)",
+  cursor: "pointer",
+  fontSize: "13px",
+};
+
+const estiloCardNovoDocumento = {
+  border: "1px dashed #ccc",
+  borderRadius: "var(--raio-pequeno)",
+  padding: "18px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "10px",
+  background: "#fafafa",
+  minHeight: "220px",
+  justifyContent: "center",
 };
 
 // =========================

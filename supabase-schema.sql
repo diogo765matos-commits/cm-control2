@@ -8,6 +8,10 @@ create table if not exists caminhoes (
   placa text not null unique,
   motorista text not null,
   frota text not null default 'cm',
+  motorista_cnh text,
+  motorista_cpf text,
+  motorista_telefone text,
+  documentos jsonb not null default '[]'::jsonb,
   criado_em timestamptz not null default now()
 );
 
@@ -82,3 +86,36 @@ create policy "usuarios autenticados - despesas gerais" on despesas_gerais_seman
   for all
   using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
+
+-- =========================================================================
+-- MIGRAÇÃO: aba "Documentação" (dados do motorista + fotos de documentos)
+-- Se o seu banco já existia antes dessa funcionalidade, rode só o bloco
+-- abaixo no SQL Editor (o restante do arquivo, acima, já foi executado).
+-- =========================================================================
+
+alter table caminhoes
+  add column if not exists motorista_cnh text,
+  add column if not exists motorista_cpf text,
+  add column if not exists motorista_telefone text,
+  add column if not exists documentos jsonb not null default '[]'::jsonb;
+
+-- Bucket de Storage onde ficam as fotos dos documentos. Leitura pública
+-- (para as fotos aparecerem sem precisar de login em cada requisição),
+-- mas só usuários autenticados do sistema podem enviar ou apagar arquivos.
+insert into storage.buckets (id, name, public)
+values ('documentos-caminhoes', 'documentos-caminhoes', true)
+on conflict (id) do nothing;
+
+create policy "leitura publica - documentos caminhoes"
+  on storage.objects for select
+  using (bucket_id = 'documentos-caminhoes');
+
+create policy "upload autenticado - documentos caminhoes"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'documentos-caminhoes');
+
+create policy "exclusao autenticada - documentos caminhoes"
+  on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'documentos-caminhoes');
