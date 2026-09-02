@@ -1,12 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import {
-  getCaminhoes,
-  atualizarCaminhao,
-  adicionarDocumento as adicionarDocumentoApi,
-  excluirDocumento as excluirDocumentoApi,
-  FROTAS,
-} from "../data/caminhoes";
+import { getCaminhoes, atualizarCaminhao, FROTAS } from "../data/caminhoes";
 import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
 import {
   getSemanasViagens,
@@ -366,9 +360,6 @@ function Caminhao() {
     telefone: "",
   });
 
-  const [novoDocumentoNome, setNovoDocumentoNome] = useState("");
-  const [arquivoDocumento, setArquivoDocumento] = useState(null);
-  const [enviandoDocumento, setEnviandoDocumento] = useState(false);
 
   if (carregando) {
     return <p>Carregando...</p>;
@@ -482,59 +473,6 @@ function Caminhao() {
     }
   }
 
-  async function enviarDocumento() {
-    if (!novoDocumentoNome.trim()) {
-      alert("Dê um nome para o documento (ex: CNH, CRLV).");
-      return;
-    }
-
-    if (!arquivoDocumento) {
-      alert("Escolha um arquivo para enviar.");
-      return;
-    }
-
-    setEnviandoDocumento(true);
-
-    try {
-      const atualizado = await adicionarDocumentoApi(
-        caminhao.id,
-        caminhao.documentos,
-        novoDocumentoNome.trim(),
-        arquivoDocumento
-      );
-
-      setCaminhao(atualizado);
-      setNovoDocumentoNome("");
-      setArquivoDocumento(null);
-
-      const campoArquivo = document.getElementById("campo-arquivo-documento");
-      if (campoArquivo) campoArquivo.value = "";
-    } catch (e) {
-      alert("Não foi possível enviar o documento: " + e.message);
-    } finally {
-      setEnviandoDocumento(false);
-    }
-  }
-
-  async function removerDocumento(documentoId) {
-    const confirmar = window.confirm(
-      "Tem certeza que deseja excluir este documento?"
-    );
-
-    if (!confirmar) return;
-
-    try {
-      const atualizado = await excluirDocumentoApi(
-        caminhao.id,
-        caminhao.documentos,
-        documentoId
-      );
-
-      setCaminhao(atualizado);
-    } catch (e) {
-      alert("Não foi possível excluir o documento: " + e.message);
-    }
-  }
 
   // =========================
   // FUNÇÕES DAS VIAGENS
@@ -2921,90 +2859,11 @@ function Caminhao() {
               </div>
             )}
 
-            <h2 style={{ marginTop: "35px" }}>Fotos de Documentos</h2>
-            <p style={estiloLegenda}>
-              CNH do motorista, documento do veículo (CRLV) ou qualquer outro
-              arquivo que valha a pena guardar aqui.
-            </p>
-
-            <div style={estiloGridDocumentos}>
-              {(caminhao.documentos || []).map((doc) => (
-                <div key={doc.id} style={estiloCardDocumento}>
-                  {ehImagem(doc.url) ? (
-                    <img
-                      src={doc.url}
-                      alt={doc.nome}
-                      style={estiloImagemDocumento}
-                    />
-                  ) : (
-                    <div style={estiloIconeArquivo}>📄</div>
-                  )}
-
-                  <div style={estiloInfoDocumento}>
-                    <strong>{doc.nome}</strong>
-                    <span style={estiloLegenda}>
-                      {formatarData((doc.criadoEm || "").slice(0, 10))}
-                    </span>
-                  </div>
-
-                  <div style={estiloAcoesDocumento}>
-                    <a
-                      href={doc.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={estiloBotaoVerDocumento}
-                    >
-                      Ver
-                    </a>
-
-                    <button
-                      style={estiloBotaoExcluirDocumento}
-                      onClick={() => removerDocumento(doc.id)}
-                    >
-                      🗑
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              <div style={estiloCardNovoDocumento}>
-                <span style={{ fontSize: "28px" }}>📎</span>
-
-                <input
-                  type="text"
-                  placeholder="Nome do documento (ex: CNH, CRLV)"
-                  value={novoDocumentoNome}
-                  onChange={(e) => setNovoDocumentoNome(e.target.value)}
-                  style={estiloInput}
-                />
-
-                <input
-                  id="campo-arquivo-documento"
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) =>
-                    setArquivoDocumento(e.target.files[0] || null)
-                  }
-                />
-
-                <button
-                  style={estiloBotaoDourado}
-                  disabled={enviandoDocumento}
-                  onClick={enviarDocumento}
-                >
-                  {enviandoDocumento ? "Enviando..." : "+ Adicionar Documento"}
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
     </div>
   );
-}
-
-function ehImagem(url) {
-  return /\.(png|jpe?g|gif|webp|heic)(\?|$)/i.test(url || "");
 }
 
 // =========================
@@ -3079,88 +2938,6 @@ const estiloMiniEstatisticaTitulo = {
 const estiloMiniEstatisticaValor = {
   fontSize: "13px",
   whiteSpace: "nowrap",
-};
-
-const estiloGridDocumentos = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-  gap: "16px",
-  marginTop: "16px",
-};
-
-const estiloCardDocumento = {
-  border: "1px solid var(--cor-borda)",
-  borderRadius: "var(--raio-pequeno)",
-  overflow: "hidden",
-  display: "flex",
-  flexDirection: "column",
-  background: "white",
-};
-
-const estiloImagemDocumento = {
-  width: "100%",
-  height: "140px",
-  objectFit: "cover",
-  background: "#f3f5f9",
-};
-
-const estiloIconeArquivo = {
-  width: "100%",
-  height: "140px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "42px",
-  background: "#f3f5f9",
-};
-
-const estiloInfoDocumento = {
-  padding: "10px 14px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "2px",
-};
-
-const estiloAcoesDocumento = {
-  display: "flex",
-  gap: "8px",
-  padding: "0 14px 14px",
-};
-
-const estiloBotaoVerDocumento = {
-  flex: 1,
-  textAlign: "center",
-  background: "var(--cor-sidebar)",
-  color: "white",
-  border: "none",
-  padding: "8px 10px",
-  borderRadius: "var(--raio-pequeno)",
-  cursor: "pointer",
-  fontSize: "13px",
-  textDecoration: "none",
-};
-
-const estiloBotaoExcluirDocumento = {
-  background: "#fee2e2",
-  color: "#dc2626",
-  border: "none",
-  padding: "8px 12px",
-  borderRadius: "var(--raio-pequeno)",
-  cursor: "pointer",
-  fontSize: "13px",
-};
-
-const estiloCardNovoDocumento = {
-  border: "1px dashed #ccc",
-  borderRadius: "var(--raio-pequeno)",
-  padding: "18px",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "10px",
-  background: "#fafafa",
-  minHeight: "220px",
-  justifyContent: "center",
 };
 
 // =========================

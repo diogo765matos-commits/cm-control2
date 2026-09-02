@@ -98,58 +98,6 @@ export const db = {
   },
 };
 
-// Envio/remoção de arquivos no Supabase Storage (fotos de documentos etc.),
-// pelo mesmo esquema de fetch "na mão" usado no resto do arquivo.
-export const storage = {
-  async upload(bucket, caminho, arquivo) {
-    const sessao = lerSessao();
-    const token = sessao?.access_token || SUPABASE_ANON_KEY;
-
-    const resposta = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${bucket}/${caminho}`,
-      {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${token}`,
-          "Content-Type": arquivo.type || "application/octet-stream",
-          "x-upsert": "true",
-        },
-        body: arquivo,
-      }
-    );
-
-    if (!resposta.ok) {
-      const texto = await resposta.text();
-      let mensagem = texto;
-
-      try {
-        const json = JSON.parse(texto);
-        mensagem = json.message || texto;
-      } catch {
-        // texto puro mesmo
-      }
-
-      throw new Error(mensagem || `Erro ${resposta.status} ao enviar arquivo`);
-    }
-
-    return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${caminho}`;
-  },
-
-  async remove(bucket, caminho) {
-    const sessao = lerSessao();
-    const token = sessao?.access_token || SUPABASE_ANON_KEY;
-
-    await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${caminho}`, {
-      method: "DELETE",
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  },
-};
-
 export const auth = {
   async login(email, senha) {
     const resposta = await fetch(
