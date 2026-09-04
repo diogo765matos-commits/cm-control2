@@ -1,6 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getCaminhoes, atualizarCaminhao, FROTAS } from "../data/caminhoes";
+import {
+  getCaminhoes,
+  atualizarCaminhao,
+  FROTAS,
+  FROTA_TERCEIRIZADA,
+} from "../data/caminhoes";
 import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
 import {
   getSemanasViagens,
@@ -388,6 +393,16 @@ function Caminhao() {
         </button>
       </div>
     );
+  }
+
+  const ehTerceirizada = caminhao.frota === FROTA_TERCEIRIZADA;
+
+  if (
+    ehTerceirizada &&
+    abaAtiva !== "viagens" &&
+    abaAtiva !== "financeiro"
+  ) {
+    setAbaAtiva("viagens");
   }
 
   function semanaNoFiltro(semana) {
@@ -984,41 +999,62 @@ function Caminhao() {
       </div>
 
       <div style={estiloGridKpis}>
-        <KpiCard
-          icone="🚚"
-          cor={CORES_KPI.verde}
-          rotulo="Viagens Realizadas"
-          valor={totalCaminhao.totalViagens}
-          legenda="Total no período"
-        />
-        <KpiCard
-          icone="💰"
-          cor={CORES_KPI.verde}
-          rotulo="Receita Bruta"
-          valor={formatarMoeda(totalCaminhao.receitaBruta)}
-          legenda="Total no período"
-        />
-        <KpiCard
-          icone="⛽"
-          cor={CORES_KPI.roxo}
-          rotulo="Combustível"
-          valor={formatarMoeda(totalCaminhao.totalCombustivel)}
-          legenda="Total no período"
-        />
-        <KpiCard
-          icone="👤"
-          cor={CORES_KPI.azul}
-          rotulo="Motoristas (10%)"
-          valor={formatarMoeda(totalCaminhao.pagamentoMotoristas)}
-          legenda="Total no período"
-        />
-        <KpiCard
-          icone="📈"
-          cor={CORES_KPI.verde}
-          rotulo="Lucro da Frota"
-          valor={formatarMoeda(totalCaminhao.lucro)}
-          legenda="Total no período"
-        />
+        {ehTerceirizada ? (
+          <>
+            <KpiCard
+              icone="📦"
+              cor={CORES_KPI.azul}
+              rotulo="Volume Entregue"
+              valor={`${formatarNumero(totalCaminhao.volumeEntregue)} m³`}
+              legenda="Total no período"
+            />
+            <KpiCard
+              icone="💰"
+              cor={CORES_KPI.verde}
+              rotulo="Valor Bruto"
+              valor={formatarMoeda(totalCaminhao.receitaBruta)}
+              legenda="Total no período"
+            />
+          </>
+        ) : (
+          <>
+            <KpiCard
+              icone="🚚"
+              cor={CORES_KPI.verde}
+              rotulo="Viagens Realizadas"
+              valor={totalCaminhao.totalViagens}
+              legenda="Total no período"
+            />
+            <KpiCard
+              icone="💰"
+              cor={CORES_KPI.verde}
+              rotulo="Receita Bruta"
+              valor={formatarMoeda(totalCaminhao.receitaBruta)}
+              legenda="Total no período"
+            />
+            <KpiCard
+              icone="⛽"
+              cor={CORES_KPI.roxo}
+              rotulo="Combustível"
+              valor={formatarMoeda(totalCaminhao.totalCombustivel)}
+              legenda="Total no período"
+            />
+            <KpiCard
+              icone="👤"
+              cor={CORES_KPI.azul}
+              rotulo="Motoristas (10%)"
+              valor={formatarMoeda(totalCaminhao.pagamentoMotoristas)}
+              legenda="Total no período"
+            />
+            <KpiCard
+              icone="📈"
+              cor={CORES_KPI.verde}
+              rotulo="Lucro da Frota"
+              valor={formatarMoeda(totalCaminhao.lucro)}
+              legenda="Total no período"
+            />
+          </>
+        )}
       </div>
 
       <div style={estiloContainer}>
@@ -1032,23 +1068,27 @@ function Caminhao() {
             🚚 Viagens
           </button>
 
-          <button
-            onClick={() =>
-              setAbaAtiva("abastecimentos")
-            }
-            style={estiloAba(
-              abaAtiva === "abastecimentos"
-            )}
-          >
-            ⛽ Abastecimentos
-          </button>
+          {!ehTerceirizada && (
+            <button
+              onClick={() =>
+                setAbaAtiva("abastecimentos")
+              }
+              style={estiloAba(
+                abaAtiva === "abastecimentos"
+              )}
+            >
+              ⛽ Abastecimentos
+            </button>
+          )}
 
-          <button
-  onClick={() => setAbaAtiva("despesas")}
-  style={estiloAba(abaAtiva === "despesas")}
->
-  🧾 Despesas Extras
-</button>
+          {!ehTerceirizada && (
+            <button
+              onClick={() => setAbaAtiva("despesas")}
+              style={estiloAba(abaAtiva === "despesas")}
+            >
+              🧾 Despesas Extras
+            </button>
+          )}
 
 <button
   onClick={() => setAbaAtiva("financeiro")}
@@ -1057,12 +1097,14 @@ function Caminhao() {
   💰 Financeiro
 </button>
 
-<button
-  onClick={() => setAbaAtiva("documentacao")}
-  style={estiloAba(abaAtiva === "documentacao")}
->
-  📋 Documentação
-</button>
+{!ehTerceirizada && (
+  <button
+    onClick={() => setAbaAtiva("documentacao")}
+    style={estiloAba(abaAtiva === "documentacao")}
+  >
+    📋 Documentação
+  </button>
+)}
         </div>
 
         {/* VIAGENS */}
@@ -2646,7 +2688,9 @@ function Caminhao() {
       <h2>Financeiro</h2>
 
       <p style={estiloLegenda}>
-        Resumo financeiro das operações deste caminhão.
+        {ehTerceirizada
+          ? "Volume entregue e valor bruto das operações deste caminhão."
+          : "Resumo financeiro das operações deste caminhão."}
       </p>
 
       <div style={estiloCardsResumo}>
@@ -2657,24 +2701,28 @@ function Caminhao() {
         />
 
         <CardResumo
-          titulo="Valor por Volume"
-          valor={formatarMoeda(VALOR_POR_VOLUME)}
-        />
-
-        <CardResumo
-          titulo="Receita Bruta"
+          titulo="Valor Bruto"
           valor={formatarMoeda(receitaBruta)}
         />
 
-        <CardResumo
-          titulo={`Pagamento do Motorista (${PERCENTUAL_MOTORISTA * 100}%)`}
-          valor={formatarMoeda(pagamentoMotorista)}
-        />
+        {!ehTerceirizada && (
+          <>
+            <CardResumo
+              titulo="Valor por Volume"
+              valor={formatarMoeda(VALOR_POR_VOLUME)}
+            />
 
-        <CardResumo
-          titulo="Fica para a Empresa"
-          valor={formatarMoeda(valorEmpresa)}
-        />
+            <CardResumo
+              titulo={`Pagamento do Motorista (${PERCENTUAL_MOTORISTA * 100}%)`}
+              valor={formatarMoeda(pagamentoMotorista)}
+            />
+
+            <CardResumo
+              titulo="Fica para a Empresa"
+              valor={formatarMoeda(valorEmpresa)}
+            />
+          </>
+        )}
 
       </div>
 
@@ -2698,8 +2746,12 @@ function Caminhao() {
                 <th style={estiloTh}>Viagens</th>
                 <th style={estiloTh}>Volume Entregue</th>
                 <th style={estiloTh}>Valor Bruto</th>
-                <th style={estiloTh}>Motorista (10%)</th>
-                <th style={estiloTh}>Fica p/ Empresa</th>
+                {!ehTerceirizada && (
+                  <>
+                    <th style={estiloTh}>Motorista (10%)</th>
+                    <th style={estiloTh}>Fica p/ Empresa</th>
+                  </>
+                )}
               </tr>
             </thead>
 
@@ -2739,13 +2791,17 @@ function Caminhao() {
                         {formatarMoeda(valorBrutoSemana)}
                       </td>
 
-                      <td style={estiloTd}>
-                        {formatarMoeda(motoristaSemana)}
-                      </td>
+                      {!ehTerceirizada && (
+                        <>
+                          <td style={estiloTd}>
+                            {formatarMoeda(motoristaSemana)}
+                          </td>
 
-                      <td style={estiloTd}>
-                        {formatarMoeda(empresaSemana)}
-                      </td>
+                          <td style={estiloTd}>
+                            {formatarMoeda(empresaSemana)}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
