@@ -6,7 +6,12 @@ import {
   FROTAS,
   FROTA_TERCEIRIZADA,
 } from "../data/caminhoes";
-import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
+import {
+  VALOR_POR_VOLUME,
+  PERCENTUAL_MOTORISTA,
+  TRANSPORTADORA_CM,
+  TRANSPORTADORA_TERCEIRIZADA,
+} from "../data/config";
 import {
   getSemanasViagens,
   criarSemanaViagens as criarSemanaViagensApi,
@@ -365,6 +370,13 @@ function Caminhao() {
     telefone: "",
   });
 
+  // ======================
+  // RELATÓRIO SEMANAL (EXCEL)
+  // ======================
+
+  const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
+  const [periodoRelatorio, setPeriodoRelatorio] = useState("");
+  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
 
   if (carregando) {
     return <p>Carregando...</p>;
@@ -419,6 +431,12 @@ function Caminhao() {
   );
 
   const totalCaminhao = somarPeriodos(periodosCaminhao);
+
+  const periodosRelatorioCaminhao = Array.from(
+    new Map(
+      semanas.map((s) => [chavePeriodo(s.inicio, s.fim), { inicio: s.inicio, fim: s.fim }])
+    ).values()
+  ).sort((a, b) => (a.inicio < b.inicio ? 1 : -1));
 
   const periodoPorChave = new Map(
     periodosCaminhao.map((periodo) => [
@@ -488,6 +506,218 @@ function Caminhao() {
     }
   }
 
+  function abrirRelatorio() {
+    setMostrarRelatorio(true);
+
+    if (!periodoRelatorio && periodosRelatorioCaminhao.length > 0) {
+      setPeriodoRelatorio(
+        chavePeriodo(
+          periodosRelatorioCaminhao[0].inicio,
+          periodosRelatorioCaminhao[0].fim
+        )
+      );
+    }
+  }
+
+  function gerarRelatorioCaminhao() {
+    const periodo = periodosRelatorioCaminhao.find(
+      (p) => chavePeriodo(p.inicio, p.fim) === periodoRelatorio
+    );
+
+    if (!periodo) {
+      alert("Escolha um período.");
+      return;
+    }
+
+    const XLSX = window.XLSX;
+
+    if (!XLSX) {
+      alert(
+        "Não foi possível carregar o gerador de planilhas. Recarregue a página e tente de novo."
+      );
+      return;
+    }
+
+    setGerandoRelatorio(true);
+
+    try {
+      const transportadora = ehTerceirizada
+        ? TRANSPORTADORA_TERCEIRIZADA
+        : TRANSPORTADORA_CM;
+
+      const semana = semanas.find(
+        (s) => s.inicio === periodo.inicio && s.fim === periodo.fim
+      );
+
+      const linhas = (semana?.viagens || []).map((viagem) => {
+        const volFiscal = converterNumero(viagem.volFiscal) || 0;
+        const volEntregue = converterNumero(viagem.volEntregue) || 0;
+        const diferenca = Number((volEntregue - volFiscal).toFixed(2));
+
+        return {
+          data: viagem.data,
+          nf: viagem.nf,
+          volFiscal,
+          volEntregue,
+          diferenca,
+          cte: viagem.cte,
+          valorFiscal: volFiscal * VALOR_POR_VOLUME,
+          complemento: diferenca * VALOR_POR_VOLUME,
+          valorFisico: volEntregue * VALOR_POR_VOLUME,
+          dataEntrega: viagem.dataEntrega,
+        };
+      });
+
+      if (linhas.length === 0) {
+        alert("Não há viagens cadastradas para esse período.");
+        return;
+      }
+
+      linhas.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+
+      const totalValorFiscal = linhas.reduce((s, l) => s + l.valorFiscal, 0);
+      const totalComplemento = linhas.reduce((s, l) => s + l.complemento, 0);
+      const totalValorFisico = linhas.reduce((s, l) => s + l.valorFisico, 0);
+      const totalVolFiscal = linhas.reduce((s, l) => s + l.volFiscal, 0);
+      const totalVolEntregue = Number(
+        linhas.reduce((s, l) => s + l.volEntregue, 0).toFixed(2)
+      );
+      const totalDiferenca = Number(
+        linhas.reduce((s, l) => s + l.diferenca, 0).toFixed(2)
+      );
+
+      const aoa = [
+        ["FECHAMENTO FINANCEIRO DE TRANSPORTE"],
+        [
+          "Período:",
+          `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Transportadora:",
+          transportadora,
+        ],
+        [
+          "VALOR FISCAL TOTAL",
+          null,
+          null,
+          null,
+          "COMPLEMENTO TOTAL",
+          null,
+          null,
+          null,
+          "VALOR FISICO TOTAL",
+        ],
+        [
+          totalValorFiscal,
+          null,
+          null,
+          null,
+          totalComplemento,
+          null,
+          null,
+          null,
+          totalValorFisico,
+        ],
+        [],
+        [],
+        [
+          "Data NF",
+          "Nº NF",
+          "Vol. Fiscal    (m³)",
+          "Vol. Entregue  (m³)",
+          "Diferença     (m³)",
+          "CT-e",
+          "Transportadora",
+          "Frete R$/m³",
+          "Valor Fiscal",
+          "Complemento",
+          "Valor Fisico",
+          "Data Transporte",
+        ],
+        ...linhas.map((l) => [
+          formatarData(l.data),
+          l.nf || "",
+          l.volFiscal,
+          l.volEntregue,
+          l.diferenca,
+          l.cte || "",
+          transportadora,
+          VALOR_POR_VOLUME,
+          l.valorFiscal,
+          l.complemento,
+          l.valorFisico,
+          l.dataEntrega ? formatarData(l.dataEntrega) : "",
+        ]),
+        [
+          "TOTAL GERAL= ",
+          linhas.length,
+          totalVolFiscal,
+          totalVolEntregue,
+          totalDiferenca,
+          null,
+          null,
+          null,
+          totalValorFiscal,
+          totalComplemento,
+          totalValorFisico,
+          null,
+        ],
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      ws["!merges"] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } },
+        { s: { r: 2, c: 4 }, e: { r: 2, c: 7 } },
+        { s: { r: 2, c: 8 }, e: { r: 2, c: 11 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
+        { s: { r: 3, c: 4 }, e: { r: 3, c: 7 } },
+        { s: { r: 3, c: 8 }, e: { r: 3, c: 11 } },
+      ];
+
+      ws["!cols"] = [
+        { wch: 12 },
+        { wch: 8 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 10 },
+        { wch: 22 },
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
+
+      const wsDashboard = XLSX.utils.aoa_to_sheet([
+        ["DASHBOARD"],
+        [],
+        ["Indicador", "Valor"],
+        ["Valor Fiscal", totalValorFiscal],
+        ["Complemento", totalComplemento],
+        ["Valor Físico", totalValorFisico],
+        ["Qtd. CT-es", linhas.filter((l) => l.cte).length],
+      ]);
+      XLSX.utils.book_append_sheet(wb, wsDashboard, "Dashboard");
+
+      const nomeArquivo = `Fechamento_${caminhao.placa}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
+      XLSX.writeFile(wb, nomeArquivo);
+
+      setMostrarRelatorio(false);
+    } catch (e) {
+      alert("Não foi possível gerar a planilha: " + e.message);
+    } finally {
+      setGerandoRelatorio(false);
+    }
+  }
 
   // =========================
   // FUNÇÕES DAS VIAGENS
@@ -891,7 +1121,73 @@ function Caminhao() {
             setFiltroFim("");
           }}
         />
+
+        <button style={estiloBotaoRelatorio} onClick={abrirRelatorio}>
+          📊 Relatório Semanal (Excel)
+        </button>
       </PageHeader>
+
+      {mostrarRelatorio && (
+        <div
+          style={estiloModalFundo}
+          onClick={() => setMostrarRelatorio(false)}
+        >
+          <div style={estiloModalCaixa} onClick={(e) => e.stopPropagation()}>
+            <h3>Gerar Relatório Semanal</h3>
+
+            <p style={estiloLegenda}>
+              Gera um arquivo Excel só com as viagens deste caminhão no
+              período escolhido, no mesmo formato do relatório que você já
+              manda pra empresa.
+            </p>
+
+            {periodosRelatorioCaminhao.length === 0 ? (
+              <p style={{ ...estiloLegenda, marginTop: "16px" }}>
+                Nenhuma semana com viagens cadastradas ainda.
+              </p>
+            ) : (
+              <>
+                <label style={estiloLabelModal}>
+                  Período
+
+                  <select
+                    value={periodoRelatorio}
+                    onChange={(e) => setPeriodoRelatorio(e.target.value)}
+                    style={estiloInput}
+                  >
+                    {periodosRelatorioCaminhao.map((p) => {
+                      const chave = chavePeriodo(p.inicio, p.fim);
+
+                      return (
+                        <option key={chave} value={chave}>
+                          {formatarData(p.inicio)} até {formatarData(p.fim)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+
+                <div style={estiloAcoesFormulario}>
+                  <button
+                    style={estiloBotaoCancelar}
+                    onClick={() => setMostrarRelatorio(false)}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    style={estiloBotaoDourado}
+                    disabled={gerandoRelatorio}
+                    onClick={gerarRelatorioCaminhao}
+                  >
+                    {gerandoRelatorio ? "Gerando..." : "📥 Gerar e Baixar"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={estiloContainer}>
         <div style={estiloCabecalhoTitulo}>
@@ -2921,6 +3217,46 @@ function Caminhao() {
     </div>
   );
 }
+
+const estiloBotaoRelatorio = {
+  background: "var(--cor-sidebar)",
+  color: "white",
+  border: "none",
+  padding: "12px 20px",
+  borderRadius: "var(--raio-pequeno)",
+  cursor: "pointer",
+  fontWeight: "bold",
+  whiteSpace: "nowrap",
+};
+
+const estiloModalFundo = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(15, 23, 42, 0.5)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 200,
+  padding: "20px",
+};
+
+const estiloModalCaixa = {
+  background: "white",
+  borderRadius: "var(--raio)",
+  padding: "28px",
+  maxWidth: "420px",
+  width: "100%",
+  boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+};
+
+const estiloLabelModal = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  fontWeight: "600",
+  color: "#444",
+  marginTop: "18px",
+};
 
 // =========================
 // COMPONENTES

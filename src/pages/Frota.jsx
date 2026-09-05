@@ -5,9 +5,14 @@ import {
   criarCaminhao,
   excluirCaminhao,
   FROTAS,
+  FROTA_TERCEIRIZADA,
 } from "../data/caminhoes";
 import { db } from "../lib/supabase";
-import { VALOR_POR_VOLUME } from "../data/config";
+import {
+  VALOR_POR_VOLUME,
+  TRANSPORTADORA_CM,
+  TRANSPORTADORA_TERCEIRIZADA,
+} from "../data/config";
 import { converterNumero, formatarData } from "../utils/formatadores";
 import { chavePeriodo } from "../utils/resumoPeriodos";
 import PageHeader from "../components/PageHeader";
@@ -134,14 +139,27 @@ function Frota() {
     setGerandoRelatorio(true);
 
     try {
-      const semanas = await db.select(
-        "viagens_semanas",
-        `select=viagens&inicio=eq.${periodo.inicio}&fim=eq.${periodo.fim}`
-      );
+      const [caminhoesTodos, semanas] = await Promise.all([
+        db.select("caminhoes", "select=id,frota"),
+        db.select(
+          "viagens_semanas",
+          `select=viagens,caminhao_id&inicio=eq.${periodo.inicio}&fim=eq.${periodo.fim}`
+        ),
+      ]);
+
+      const frotaPorCaminhaoId = {};
+      caminhoesTodos.forEach((c) => {
+        frotaPorCaminhaoId[c.id] = c.frota;
+      });
 
       const linhas = [];
 
       semanas.forEach((semana) => {
+        const transportadora =
+          frotaPorCaminhaoId[semana.caminhao_id] === FROTA_TERCEIRIZADA
+            ? TRANSPORTADORA_TERCEIRIZADA
+            : TRANSPORTADORA_CM;
+
         (semana.viagens || []).forEach((viagem) => {
           const volFiscal = converterNumero(viagem.volFiscal) || 0;
           const volEntregue = converterNumero(viagem.volEntregue) || 0;
@@ -154,6 +172,7 @@ function Frota() {
             volEntregue,
             diferenca,
             cte: viagem.cte,
+            transportadora,
             valorFiscal: volFiscal * VALOR_POR_VOLUME,
             complemento: diferenca * VALOR_POR_VOLUME,
             valorFisico: volEntregue * VALOR_POR_VOLUME,
@@ -237,7 +256,7 @@ function Frota() {
           l.volEntregue,
           l.diferenca,
           l.cte || "",
-          "C e M TRANSPORTADORA",
+          l.transportadora,
           VALOR_POR_VOLUME,
           l.valorFiscal,
           l.complemento,
