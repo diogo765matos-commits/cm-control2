@@ -6,12 +6,22 @@ import {
   excluirCaminhao,
   FROTAS,
 } from "../data/caminhoes";
+import { db } from "../lib/supabase";
+import { VALOR_POR_VOLUME } from "../data/config";
+import { converterNumero, formatarData } from "../utils/formatadores";
+import { chavePeriodo } from "../utils/resumoPeriodos";
 import PageHeader from "../components/PageHeader";
 
 function Frota() {
   const [caminhoes, setCaminhoes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+
+  const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
+  const [carregandoPeriodos, setCarregandoPeriodos] = useState(false);
+  const [periodosDisponiveis, setPeriodosDisponiveis] = useState([]);
+  const [periodoEscolhido, setPeriodoEscolhido] = useState("");
+  const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
 
   async function carregar() {
     setCarregando(true);
@@ -68,6 +78,240 @@ function Frota() {
     }
   }
 
+  async function abrirRelatorio() {
+    setMostrarRelatorio(true);
+
+    if (periodosDisponiveis.length > 0) return;
+
+    setCarregandoPeriodos(true);
+
+    try {
+      const semanas = await db.select("viagens_semanas", "select=inicio,fim");
+
+      const mapa = new Map();
+      semanas.forEach((semana) => {
+        mapa.set(chavePeriodo(semana.inicio, semana.fim), {
+          inicio: semana.inicio,
+          fim: semana.fim,
+        });
+      });
+
+      const lista = Array.from(mapa.values()).sort((a, b) =>
+        a.inicio < b.inicio ? 1 : -1
+      );
+
+      setPeriodosDisponiveis(lista);
+
+      if (lista.length > 0) {
+        setPeriodoEscolhido(chavePeriodo(lista[0].inicio, lista[0].fim));
+      }
+    } catch (e) {
+      alert("Não foi possível carregar os períodos: " + e.message);
+    } finally {
+      setCarregandoPeriodos(false);
+    }
+  }
+
+  async function gerarRelatorio() {
+    const periodo = periodosDisponiveis.find(
+      (p) => chavePeriodo(p.inicio, p.fim) === periodoEscolhido
+    );
+
+    if (!periodo) {
+      alert("Escolha um período.");
+      return;
+    }
+
+    const XLSX = window.XLSX;
+
+    if (!XLSX) {
+      alert(
+        "Não foi possível carregar o gerador de planilhas. Recarregue a página e tente de novo."
+      );
+      return;
+    }
+
+    setGerandoRelatorio(true);
+
+    try {
+      const semanas = await db.select(
+        "viagens_semanas",
+        `select=viagens&inicio=eq.${periodo.inicio}&fim=eq.${periodo.fim}`
+      );
+
+      const linhas = [];
+
+      semanas.forEach((semana) => {
+        (semana.viagens || []).forEach((viagem) => {
+          const volFiscal = converterNumero(viagem.volFiscal) || 0;
+          const volEntregue = converterNumero(viagem.volEntregue) || 0;
+          const diferenca = Number((volEntregue - volFiscal).toFixed(2));
+
+          linhas.push({
+            data: viagem.data,
+            nf: viagem.nf,
+            volFiscal,
+            volEntregue,
+            diferenca,
+            cte: viagem.cte,
+            valorFiscal: volFiscal * VALOR_POR_VOLUME,
+            complemento: diferenca * VALOR_POR_VOLUME,
+            valorFisico: volEntregue * VALOR_POR_VOLUME,
+            dataEntrega: viagem.dataEntrega,
+          });
+        });
+      });
+
+      if (linhas.length === 0) {
+        alert("Não há viagens cadastradas para esse período.");
+        return;
+      }
+
+      linhas.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+
+      const totalValorFiscal = linhas.reduce((s, l) => s + l.valorFiscal, 0);
+      const totalComplemento = linhas.reduce((s, l) => s + l.complemento, 0);
+      const totalValorFisico = linhas.reduce((s, l) => s + l.valorFisico, 0);
+      const totalVolFiscal = linhas.reduce((s, l) => s + l.volFiscal, 0);
+      const totalVolEntregue = Number(
+        linhas.reduce((s, l) => s + l.volEntregue, 0).toFixed(2)
+      );
+      const totalDiferenca = Number(
+        linhas.reduce((s, l) => s + l.diferenca, 0).toFixed(2)
+      );
+
+      const aoa = [
+        ["FECHAMENTO FINANCEIRO DE TRANSPORTE"],
+        [
+          "Período:",
+          `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "Transportadora:",
+        ],
+        [
+          "VALOR FISCAL TOTAL",
+          null,
+          null,
+          null,
+          "COMPLEMENTO TOTAL",
+          null,
+          null,
+          null,
+          "VALOR FISICO TOTAL",
+        ],
+        [
+          totalValorFiscal,
+          null,
+          null,
+          null,
+          totalComplemento,
+          null,
+          null,
+          null,
+          totalValorFisico,
+        ],
+        [],
+        [],
+        [
+          "Data NF",
+          "Nº NF",
+          "Vol. Fiscal    (m³)",
+          "Vol. Entregue  (m³)",
+          "Diferença     (m³)",
+          "CT-e",
+          "Transportadora",
+          "Frete R$/m³",
+          "Valor Fiscal",
+          "Complemento",
+          "Valor Fisico",
+          "Data Transporte",
+        ],
+        ...linhas.map((l) => [
+          formatarData(l.data),
+          l.nf || "",
+          l.volFiscal,
+          l.volEntregue,
+          l.diferenca,
+          l.cte || "",
+          "C e M TRANSPORTADORA",
+          VALOR_POR_VOLUME,
+          l.valorFiscal,
+          l.complemento,
+          l.valorFisico,
+          l.dataEntrega ? formatarData(l.dataEntrega) : "",
+        ]),
+        [
+          "TOTAL GERAL= ",
+          linhas.length,
+          totalVolFiscal,
+          totalVolEntregue,
+          totalDiferenca,
+          null,
+          null,
+          null,
+          totalValorFiscal,
+          totalComplemento,
+          totalValorFisico,
+          null,
+        ],
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      ws["!merges"] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } },
+        { s: { r: 2, c: 4 }, e: { r: 2, c: 7 } },
+        { s: { r: 2, c: 8 }, e: { r: 2, c: 11 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
+        { s: { r: 3, c: 4 }, e: { r: 3, c: 7 } },
+        { s: { r: 3, c: 8 }, e: { r: 3, c: 11 } },
+      ];
+
+      ws["!cols"] = [
+        { wch: 12 },
+        { wch: 8 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 10 },
+        { wch: 22 },
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
+
+      const wsDashboard = XLSX.utils.aoa_to_sheet([
+        ["DASHBOARD"],
+        [],
+        ["Indicador", "Valor"],
+        ["Valor Fiscal", totalValorFiscal],
+        ["Complemento", totalComplemento],
+        ["Valor Físico", totalValorFisico],
+        ["Qtd. CT-es", linhas.filter((l) => l.cte).length],
+      ]);
+      XLSX.utils.book_append_sheet(wb, wsDashboard, "Dashboard");
+
+      const nomeArquivo = `Fechamento_Transporte_${periodo.inicio}_a_${periodo.fim}.xlsx`;
+      XLSX.writeFile(wb, nomeArquivo);
+
+      setMostrarRelatorio(false);
+    } catch (e) {
+      alert("Não foi possível gerar a planilha: " + e.message);
+    } finally {
+      setGerandoRelatorio(false);
+    }
+  }
+
   if (carregando) {
     return <p>Carregando frota...</p>;
   }
@@ -83,7 +327,74 @@ function Frota() {
       <PageHeader
         titulo="Frota"
         subtitulo={`${caminhoes.length} caminhão(ões) cadastrado(s) ao todo.`}
-      />
+      >
+        <button style={estiloBotaoRelatorio} onClick={abrirRelatorio}>
+          📊 Relatório Semanal (Excel)
+        </button>
+      </PageHeader>
+
+      {mostrarRelatorio && (
+        <div
+          style={estiloModalFundo}
+          onClick={() => setMostrarRelatorio(false)}
+        >
+          <div style={estiloModalCaixa} onClick={(e) => e.stopPropagation()}>
+            <h3>Gerar Relatório Semanal</h3>
+
+            <p style={estiloLegenda}>
+              Junta as viagens de todos os caminhões do período escolhido num
+              arquivo Excel, igual ao que você já manda pra empresa.
+            </p>
+
+            {carregandoPeriodos ? (
+              <p style={{ marginTop: "16px" }}>Carregando períodos...</p>
+            ) : periodosDisponiveis.length === 0 ? (
+              <p style={{ ...estiloLegenda, marginTop: "16px" }}>
+                Nenhuma semana com viagens cadastradas ainda.
+              </p>
+            ) : (
+              <>
+                <label style={estiloLabelModal}>
+                  Período
+
+                  <select
+                    value={periodoEscolhido}
+                    onChange={(e) => setPeriodoEscolhido(e.target.value)}
+                    style={estiloInput}
+                  >
+                    {periodosDisponiveis.map((p) => {
+                      const chave = chavePeriodo(p.inicio, p.fim);
+
+                      return (
+                        <option key={chave} value={chave}>
+                          {formatarData(p.inicio)} até {formatarData(p.fim)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </label>
+
+                <div style={estiloAcoesFormulario}>
+                  <button
+                    style={estiloBotaoCancelar}
+                    onClick={() => setMostrarRelatorio(false)}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    style={estiloBotaoDourado}
+                    disabled={gerandoRelatorio}
+                    onClick={gerarRelatorio}
+                  >
+                    {gerandoRelatorio ? "Gerando..." : "📥 Gerar e Baixar"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {FROTAS.map((frota) => (
         <SecaoFrota
@@ -419,6 +730,46 @@ const estiloBotaoExcluir = {
   cursor: "pointer",
   fontSize: "13px",
   whiteSpace: "nowrap",
+};
+
+const estiloBotaoRelatorio = {
+  background: "var(--cor-sidebar)",
+  color: "white",
+  border: "none",
+  padding: "12px 20px",
+  borderRadius: "var(--raio-pequeno)",
+  cursor: "pointer",
+  fontWeight: "bold",
+  whiteSpace: "nowrap",
+};
+
+const estiloModalFundo = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(15, 23, 42, 0.5)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 200,
+  padding: "20px",
+};
+
+const estiloModalCaixa = {
+  background: "white",
+  borderRadius: "var(--raio)",
+  padding: "28px",
+  maxWidth: "420px",
+  width: "100%",
+  boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+};
+
+const estiloLabelModal = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  fontWeight: "600",
+  color: "#444",
+  marginTop: "18px",
 };
 
 export default Frota;
