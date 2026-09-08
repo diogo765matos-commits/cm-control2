@@ -23,6 +23,7 @@ function Frota() {
   const [erro, setErro] = useState("");
 
   const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
+  const [frotaRelatorio, setFrotaRelatorio] = useState("");
   const [carregandoPeriodos, setCarregandoPeriodos] = useState(false);
   const [periodosDisponiveis, setPeriodosDisponiveis] = useState([]);
   const [periodoEscolhido, setPeriodoEscolhido] = useState("");
@@ -83,23 +84,35 @@ function Frota() {
     }
   }
 
-  async function abrirRelatorio() {
+  async function abrirRelatorio(tipoFrota) {
+    setFrotaRelatorio(tipoFrota);
     setMostrarRelatorio(true);
-
-    if (periodosDisponiveis.length > 0) return;
+    setPeriodosDisponiveis([]);
+    setPeriodoEscolhido("");
 
     setCarregandoPeriodos(true);
 
     try {
-      const semanas = await db.select("viagens_semanas", "select=inicio,fim");
+      const [caminhoesTodos, semanas] = await Promise.all([
+        db.select("caminhoes", "select=id,frota"),
+        db.select("viagens_semanas", "select=inicio,fim,caminhao_id"),
+      ]);
+
+      const idsDaFrota = new Set(
+        caminhoesTodos
+          .filter((c) => c.frota === tipoFrota)
+          .map((c) => c.id)
+      );
 
       const mapa = new Map();
-      semanas.forEach((semana) => {
-        mapa.set(chavePeriodo(semana.inicio, semana.fim), {
-          inicio: semana.inicio,
-          fim: semana.fim,
+      semanas
+        .filter((semana) => idsDaFrota.has(semana.caminhao_id))
+        .forEach((semana) => {
+          mapa.set(chavePeriodo(semana.inicio, semana.fim), {
+            inicio: semana.inicio,
+            fim: semana.fim,
+          });
         });
-      });
 
       const lista = Array.from(mapa.values()).sort((a, b) =>
         a.inicio < b.inicio ? 1 : -1
@@ -139,6 +152,11 @@ function Frota() {
     setGerandoRelatorio(true);
 
     try {
+      const transportadora =
+        frotaRelatorio === FROTA_TERCEIRIZADA
+          ? TRANSPORTADORA_TERCEIRIZADA
+          : TRANSPORTADORA_CM;
+
       const [caminhoesTodos, semanas] = await Promise.all([
         db.select("caminhoes", "select=id,frota"),
         db.select(
@@ -147,39 +165,36 @@ function Frota() {
         ),
       ]);
 
-      const frotaPorCaminhaoId = {};
-      caminhoesTodos.forEach((c) => {
-        frotaPorCaminhaoId[c.id] = c.frota;
-      });
+      const idsDaFrota = new Set(
+        caminhoesTodos
+          .filter((c) => c.frota === frotaRelatorio)
+          .map((c) => c.id)
+      );
 
       const linhas = [];
 
-      semanas.forEach((semana) => {
-        const transportadora =
-          frotaPorCaminhaoId[semana.caminhao_id] === FROTA_TERCEIRIZADA
-            ? TRANSPORTADORA_TERCEIRIZADA
-            : TRANSPORTADORA_CM;
+      semanas
+        .filter((semana) => idsDaFrota.has(semana.caminhao_id))
+        .forEach((semana) => {
+          (semana.viagens || []).forEach((viagem) => {
+            const volFiscal = converterNumero(viagem.volFiscal) || 0;
+            const volEntregue = converterNumero(viagem.volEntregue) || 0;
+            const diferenca = Number((volEntregue - volFiscal).toFixed(2));
 
-        (semana.viagens || []).forEach((viagem) => {
-          const volFiscal = converterNumero(viagem.volFiscal) || 0;
-          const volEntregue = converterNumero(viagem.volEntregue) || 0;
-          const diferenca = Number((volEntregue - volFiscal).toFixed(2));
-
-          linhas.push({
-            data: viagem.data,
-            nf: viagem.nf,
-            volFiscal,
-            volEntregue,
-            diferenca,
-            cte: viagem.cte,
-            transportadora,
-            valorFiscal: volFiscal * VALOR_POR_VOLUME,
-            complemento: diferenca * VALOR_POR_VOLUME,
-            valorFisico: volEntregue * VALOR_POR_VOLUME,
-            dataEntrega: viagem.dataEntrega,
+            linhas.push({
+              data: viagem.data,
+              nf: viagem.nf,
+              volFiscal,
+              volEntregue,
+              diferenca,
+              cte: viagem.cte,
+              valorFiscal: volFiscal * VALOR_POR_VOLUME,
+              complemento: diferenca * VALOR_POR_VOLUME,
+              valorFisico: volEntregue * VALOR_POR_VOLUME,
+              dataEntrega: viagem.dataEntrega,
+            });
           });
         });
-      });
 
       if (linhas.length === 0) {
         alert("Não há viagens cadastradas para esse período.");
@@ -210,6 +225,7 @@ function Frota() {
           null,
           null,
           "Transportadora:",
+          transportadora,
         ],
         [
           "VALOR FISCAL TOTAL",
@@ -256,7 +272,7 @@ function Frota() {
           l.volEntregue,
           l.diferenca,
           l.cte || "",
-          l.transportadora,
+          transportadora,
           VALOR_POR_VOLUME,
           l.valorFiscal,
           l.complemento,
@@ -320,7 +336,9 @@ function Frota() {
       ]);
       XLSX.utils.book_append_sheet(wb, wsDashboard, "Dashboard");
 
-      const nomeArquivo = `Fechamento_Transporte_${periodo.inicio}_a_${periodo.fim}.xlsx`;
+      const rotuloFrota =
+        frotaRelatorio === FROTA_TERCEIRIZADA ? "Terceirizada" : "CM";
+      const nomeArquivo = `Fechamento_${rotuloFrota}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
       XLSX.writeFile(wb, nomeArquivo);
 
       setMostrarRelatorio(false);
@@ -346,11 +364,7 @@ function Frota() {
       <PageHeader
         titulo="Frota"
         subtitulo={`${caminhoes.length} caminhão(ões) cadastrado(s) ao todo.`}
-      >
-        <button style={estiloBotaoRelatorio} onClick={abrirRelatorio}>
-          📊 Relatório Semanal (Excel)
-        </button>
-      </PageHeader>
+      />
 
       {mostrarRelatorio && (
         <div
@@ -358,11 +372,14 @@ function Frota() {
           onClick={() => setMostrarRelatorio(false)}
         >
           <div style={estiloModalCaixa} onClick={(e) => e.stopPropagation()}>
-            <h3>Gerar Relatório Semanal</h3>
+            <h3>
+              Gerar Relatório —{" "}
+              {FROTAS.find((f) => f.tipo === frotaRelatorio)?.titulo}
+            </h3>
 
             <p style={estiloLegenda}>
-              Junta as viagens de todos os caminhões do período escolhido num
-              arquivo Excel, igual ao que você já manda pra empresa.
+              Junta as viagens dos caminhões dessa frota no período escolhido
+              num arquivo Excel, igual ao que você já manda pra empresa.
             </p>
 
             {carregandoPeriodos ? (
@@ -422,13 +439,14 @@ function Frota() {
           caminhoes={caminhoes.filter((c) => c.frota === frota.tipo)}
           onAdicionar={(dados) => adicionarCaminhao(dados, frota.tipo)}
           onExcluir={excluir}
+          onRelatorio={() => abrirRelatorio(frota.tipo)}
         />
       ))}
     </div>
   );
 }
 
-function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
+function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir, onRelatorio }) {
   const navigate = useNavigate();
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -475,12 +493,18 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
           </p>
         </div>
 
-        <button
-          style={estiloBotaoDourado}
-          onClick={() => setMostrarFormulario(true)}
-        >
-          + Novo Caminhão
-        </button>
+        <div style={estiloAcoesTopoSecao}>
+          <button style={estiloBotaoRelatorio} onClick={onRelatorio}>
+            📊 Relatório Semanal (Excel)
+          </button>
+
+          <button
+            style={estiloBotaoDourado}
+            onClick={() => setMostrarFormulario(true)}
+          >
+            + Novo Caminhão
+          </button>
+        </div>
       </div>
 
       {mostrarFormulario && (
@@ -608,6 +632,12 @@ const estiloTopoSecao = {
 
 const estiloTituloSecao = {
   fontSize: "18px",
+};
+
+const estiloAcoesTopoSecao = {
+  display: "flex",
+  gap: "10px",
+  flexWrap: "wrap",
 };
 
 const estiloLegenda = {
