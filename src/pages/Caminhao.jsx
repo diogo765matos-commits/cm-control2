@@ -49,6 +49,7 @@ import {
   chavePeriodo,
   somarPeriodos,
 } from "../utils/resumoPeriodos";
+import { construirPlanilhaFechamento } from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 import DateRangeFilter from "../components/DateRangeFilter";
 import KpiCard, { CORES_KPI } from "../components/KpiCard";
@@ -554,164 +555,20 @@ function Caminhao() {
         (s) => s.inicio === periodo.inicio && s.fim === periodo.fim
       );
 
-      const linhas = (semana?.viagens || []).map((viagem) => {
-        const volFiscal = converterNumero(viagem.volFiscal) || 0;
-        const volEntregue = converterNumero(viagem.volEntregue) || 0;
-        const diferenca = Number((volEntregue - volFiscal).toFixed(2));
-
-        return {
-          data: viagem.data,
-          nf: viagem.nf,
-          volFiscal,
-          volEntregue,
-          diferenca,
-          cte: viagem.cte,
-          valorFiscal: volFiscal * taxaCaminhao,
-          complemento: diferenca * taxaCaminhao,
-          valorFisico: volEntregue * taxaCaminhao,
-          dataEntrega: viagem.dataEntrega,
-        };
+      const wb = construirPlanilhaFechamento({
+        XLSX,
+        periodoLabel: `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
+        transportadora,
+        unidade,
+        taxa: taxaCaminhao,
+        viagens: semana?.viagens || [],
+        comFiscal: !ehBagaco,
       });
 
-      if (linhas.length === 0) {
+      if (!wb) {
         alert("Não há viagens cadastradas para esse período.");
         return;
       }
-
-      linhas.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
-
-      const totalValorFiscal = linhas.reduce((s, l) => s + l.valorFiscal, 0);
-      const totalComplemento = linhas.reduce((s, l) => s + l.complemento, 0);
-      const totalValorFisico = linhas.reduce((s, l) => s + l.valorFisico, 0);
-      const totalVolFiscal = linhas.reduce((s, l) => s + l.volFiscal, 0);
-      const totalVolEntregue = Number(
-        linhas.reduce((s, l) => s + l.volEntregue, 0).toFixed(2)
-      );
-      const totalDiferenca = Number(
-        linhas.reduce((s, l) => s + l.diferenca, 0).toFixed(2)
-      );
-
-      const aoa = [
-        ["FECHAMENTO FINANCEIRO DE TRANSPORTE"],
-        [
-          "Período:",
-          `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
-          null,
-          null,
-          null,
-          null,
-          null,
-          "Transportadora:",
-          transportadora,
-        ],
-        [
-          "VALOR FISCAL TOTAL",
-          null,
-          null,
-          null,
-          "COMPLEMENTO TOTAL",
-          null,
-          null,
-          null,
-          "VALOR FISICO TOTAL",
-        ],
-        [
-          totalValorFiscal,
-          null,
-          null,
-          null,
-          totalComplemento,
-          null,
-          null,
-          null,
-          totalValorFisico,
-        ],
-        [],
-        [],
-        [
-          "Data NF",
-          "Nº NF",
-          `${unidade.abreviado} Fiscal    (${unidade.curta})`,
-          `${unidade.abreviado} Entregue  (${unidade.curta})`,
-          `Diferença     (${unidade.curta})`,
-          "CT-e",
-          "Transportadora",
-          `Frete R$/${unidade.curta}`,
-          "Valor Fiscal",
-          "Complemento",
-          "Valor Fisico",
-          "Data Transporte",
-        ],
-        ...linhas.map((l) => [
-          formatarData(l.data),
-          l.nf || "",
-          l.volFiscal,
-          l.volEntregue,
-          l.diferenca,
-          l.cte || "",
-          transportadora,
-          taxaCaminhao,
-          l.valorFiscal,
-          l.complemento,
-          l.valorFisico,
-          l.dataEntrega ? formatarData(l.dataEntrega) : "",
-        ]),
-        [
-          "TOTAL GERAL= ",
-          linhas.length,
-          totalVolFiscal,
-          totalVolEntregue,
-          totalDiferenca,
-          null,
-          null,
-          null,
-          totalValorFiscal,
-          totalComplemento,
-          totalValorFisico,
-          null,
-        ],
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-      ws["!merges"] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
-        { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } },
-        { s: { r: 2, c: 4 }, e: { r: 2, c: 7 } },
-        { s: { r: 2, c: 8 }, e: { r: 2, c: 11 } },
-        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
-        { s: { r: 3, c: 4 }, e: { r: 3, c: 7 } },
-        { s: { r: 3, c: 8 }, e: { r: 3, c: 11 } },
-      ];
-
-      ws["!cols"] = [
-        { wch: 12 },
-        { wch: 8 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 14 },
-        { wch: 10 },
-        { wch: 22 },
-        { wch: 12 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 14 },
-      ];
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
-
-      const wsDashboard = XLSX.utils.aoa_to_sheet([
-        ["DASHBOARD"],
-        [],
-        ["Indicador", "Valor"],
-        ["Valor Fiscal", totalValorFiscal],
-        ["Complemento", totalComplemento],
-        ["Valor Físico", totalValorFisico],
-        ["Qtd. CT-es", linhas.filter((l) => l.cte).length],
-      ]);
-      XLSX.utils.book_append_sheet(wb, wsDashboard, "Dashboard");
 
       const nomeArquivo = `Fechamento_${caminhao.placa}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
       XLSX.writeFile(wb, nomeArquivo);
@@ -1732,30 +1589,34 @@ function Caminhao() {
                         }
                       />
 
-                      <Campo
-                        titulo="CTe"
-                        placeholder="Ex: 98471"
-                        value={novaViagem.cte}
-                        onChange={(e) =>
-                          setNovaViagem({
-                            ...novaViagem,
-                            cte: e.target.value,
-                          })
-                        }
-                      />
+                      {!ehBagaco && (
+                        <Campo
+                          titulo="CTe"
+                          placeholder="Ex: 98471"
+                          value={novaViagem.cte}
+                          onChange={(e) =>
+                            setNovaViagem({
+                              ...novaViagem,
+                              cte: e.target.value,
+                            })
+                          }
+                        />
+                      )}
 
-                      <Campo
-                        titulo={`${unidade.abreviado} Fiscal`}
-                        type="number"
-                        step="0.01"
-                        value={novaViagem.volFiscal}
-                        onChange={(e) =>
-                          setNovaViagem({
-                            ...novaViagem,
-                            volFiscal: e.target.value,
-                          })
-                        }
-                      />
+                      {!ehBagaco && (
+                        <Campo
+                          titulo={`${unidade.abreviado} Fiscal`}
+                          type="number"
+                          step="0.01"
+                          value={novaViagem.volFiscal}
+                          onChange={(e) =>
+                            setNovaViagem({
+                              ...novaViagem,
+                              volFiscal: e.target.value,
+                            })
+                          }
+                        />
+                      )}
 
                       <Campo
                         titulo={`${unidade.abreviado} Entregue`}
@@ -1785,15 +1646,17 @@ function Caminhao() {
                       />
                     </div>
 
-                    <div style={estiloPreviaDiferenca}>
-                      Diferença:{" "}
-                      <strong>
-                        {calcularDiferenca(
-                          novaViagem.volFiscal,
-                          novaViagem.volEntregue
-                        )}
-                      </strong>
-                    </div>
+                    {!ehBagaco && (
+                      <div style={estiloPreviaDiferenca}>
+                        Diferença:{" "}
+                        <strong>
+                          {calcularDiferenca(
+                            novaViagem.volFiscal,
+                            novaViagem.volEntregue
+                          )}
+                        </strong>
+                      </div>
+                    )}
 
                     <div style={estiloAcoesFormulario}>
                       <button
@@ -1833,16 +1696,22 @@ function Caminhao() {
                         <tr>
                           <th style={estiloTh}>Data</th>
                           <th style={estiloTh}>NF</th>
-                          <th style={estiloTh}>CTe</th>
-                          <th style={estiloTh}>
-                            {unidade.abreviado} Fiscal
-                          </th>
+                          {!ehBagaco && (
+                            <th style={estiloTh}>CTe</th>
+                          )}
+                          {!ehBagaco && (
+                            <th style={estiloTh}>
+                              {unidade.abreviado} Fiscal
+                            </th>
+                          )}
                           <th style={estiloTh}>
                             {unidade.abreviado} Entregue
                           </th>
-                          <th style={estiloTh}>
-                            Diferença
-                          </th>
+                          {!ehBagaco && (
+                            <th style={estiloTh}>
+                              Diferença
+                            </th>
+                          )}
                           <th style={estiloTh}>
                             Entrega
                           </th>
@@ -1863,26 +1732,32 @@ function Caminhao() {
                                 {viagem.nf || "-"}
                               </td>
 
-                              <td style={estiloTd}>
-                                {viagem.cte || "-"}
-                              </td>
+                              {!ehBagaco && (
+                                <td style={estiloTd}>
+                                  {viagem.cte || "-"}
+                                </td>
+                              )}
 
-                              <td style={estiloTd}>
-                                {viagem.volFiscal ||
-                                  "-"}
-                              </td>
+                              {!ehBagaco && (
+                                <td style={estiloTd}>
+                                  {viagem.volFiscal ||
+                                    "-"}
+                                </td>
+                              )}
 
                               <td style={estiloTd}>
                                 {viagem.volEntregue ||
                                   "-"}
                               </td>
 
-                              <td style={estiloTd}>
-                                {calcularDiferenca(
-                                  viagem.volFiscal,
-                                  viagem.volEntregue
-                                )}
-                              </td>
+                              {!ehBagaco && (
+                                <td style={estiloTd}>
+                                  {calcularDiferenca(
+                                    viagem.volFiscal,
+                                    viagem.volEntregue
+                                  )}
+                                </td>
+                              )}
 
                               <td style={estiloTd}>
                                 {formatarData(

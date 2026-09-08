@@ -15,8 +15,9 @@ import {
   TRANSPORTADORA_CM,
   TRANSPORTADORA_TERCEIRIZADA,
 } from "../data/config";
-import { converterNumero, formatarData } from "../utils/formatadores";
+import { formatarData } from "../utils/formatadores";
 import { chavePeriodo } from "../utils/resumoPeriodos";
+import { construirPlanilhaFechamento } from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 
 function Frota() {
@@ -176,170 +177,30 @@ function Frota() {
           .map((c) => c.id)
       );
 
-      const linhas = [];
+      const viagensDaFrota = [];
 
       semanas
         .filter((semana) => idsDaFrota.has(semana.caminhao_id))
         .forEach((semana) => {
           (semana.viagens || []).forEach((viagem) => {
-            const volFiscal = converterNumero(viagem.volFiscal) || 0;
-            const volEntregue = converterNumero(viagem.volEntregue) || 0;
-            const diferenca = Number((volEntregue - volFiscal).toFixed(2));
-
-            linhas.push({
-              data: viagem.data,
-              nf: viagem.nf,
-              volFiscal,
-              volEntregue,
-              diferenca,
-              cte: viagem.cte,
-              valorFiscal: volFiscal * taxa,
-              complemento: diferenca * taxa,
-              valorFisico: volEntregue * taxa,
-              dataEntrega: viagem.dataEntrega,
-            });
+            viagensDaFrota.push(viagem);
           });
         });
 
-      if (linhas.length === 0) {
+      const wb = construirPlanilhaFechamento({
+        XLSX,
+        periodoLabel: `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
+        transportadora,
+        unidade,
+        taxa,
+        viagens: viagensDaFrota,
+        comFiscal: frotaRelatorio !== FROTA_BAGACO,
+      });
+
+      if (!wb) {
         alert("Não há viagens cadastradas para esse período.");
         return;
       }
-
-      linhas.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
-
-      const totalValorFiscal = linhas.reduce((s, l) => s + l.valorFiscal, 0);
-      const totalComplemento = linhas.reduce((s, l) => s + l.complemento, 0);
-      const totalValorFisico = linhas.reduce((s, l) => s + l.valorFisico, 0);
-      const totalVolFiscal = linhas.reduce((s, l) => s + l.volFiscal, 0);
-      const totalVolEntregue = Number(
-        linhas.reduce((s, l) => s + l.volEntregue, 0).toFixed(2)
-      );
-      const totalDiferenca = Number(
-        linhas.reduce((s, l) => s + l.diferenca, 0).toFixed(2)
-      );
-
-      const aoa = [
-        ["FECHAMENTO FINANCEIRO DE TRANSPORTE"],
-        [
-          "Período:",
-          `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
-          null,
-          null,
-          null,
-          null,
-          null,
-          "Transportadora:",
-          transportadora,
-        ],
-        [
-          "VALOR FISCAL TOTAL",
-          null,
-          null,
-          null,
-          "COMPLEMENTO TOTAL",
-          null,
-          null,
-          null,
-          "VALOR FISICO TOTAL",
-        ],
-        [
-          totalValorFiscal,
-          null,
-          null,
-          null,
-          totalComplemento,
-          null,
-          null,
-          null,
-          totalValorFisico,
-        ],
-        [],
-        [],
-        [
-          "Data NF",
-          "Nº NF",
-          `${unidade.abreviado} Fiscal    (${unidade.curta})`,
-          `${unidade.abreviado} Entregue  (${unidade.curta})`,
-          `Diferença     (${unidade.curta})`,
-          "CT-e",
-          "Transportadora",
-          `Frete R$/${unidade.curta}`,
-          "Valor Fiscal",
-          "Complemento",
-          "Valor Fisico",
-          "Data Transporte",
-        ],
-        ...linhas.map((l) => [
-          formatarData(l.data),
-          l.nf || "",
-          l.volFiscal,
-          l.volEntregue,
-          l.diferenca,
-          l.cte || "",
-          transportadora,
-          taxa,
-          l.valorFiscal,
-          l.complemento,
-          l.valorFisico,
-          l.dataEntrega ? formatarData(l.dataEntrega) : "",
-        ]),
-        [
-          "TOTAL GERAL= ",
-          linhas.length,
-          totalVolFiscal,
-          totalVolEntregue,
-          totalDiferenca,
-          null,
-          null,
-          null,
-          totalValorFiscal,
-          totalComplemento,
-          totalValorFisico,
-          null,
-        ],
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-      ws["!merges"] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
-        { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } },
-        { s: { r: 2, c: 4 }, e: { r: 2, c: 7 } },
-        { s: { r: 2, c: 8 }, e: { r: 2, c: 11 } },
-        { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
-        { s: { r: 3, c: 4 }, e: { r: 3, c: 7 } },
-        { s: { r: 3, c: 8 }, e: { r: 3, c: 11 } },
-      ];
-
-      ws["!cols"] = [
-        { wch: 12 },
-        { wch: 8 },
-        { wch: 14 },
-        { wch: 16 },
-        { wch: 14 },
-        { wch: 10 },
-        { wch: 22 },
-        { wch: 12 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 14 },
-        { wch: 14 },
-      ];
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
-
-      const wsDashboard = XLSX.utils.aoa_to_sheet([
-        ["DASHBOARD"],
-        [],
-        ["Indicador", "Valor"],
-        ["Valor Fiscal", totalValorFiscal],
-        ["Complemento", totalComplemento],
-        ["Valor Físico", totalValorFisico],
-        ["Qtd. CT-es", linhas.filter((l) => l.cte).length],
-      ]);
-      XLSX.utils.book_append_sheet(wb, wsDashboard, "Dashboard");
 
       const rotuloFrota =
         frotaRelatorio === FROTA_TERCEIRIZADA
