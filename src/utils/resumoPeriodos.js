@@ -6,6 +6,19 @@
 import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
 import { converterNumero } from "./formatadores";
 
+// A taxa por unidade entregue varia por frota (ex: Bagaço de Cana usa
+// tonelada a R$290, as demais usam volume a VALOR_POR_VOLUME). Quem chama
+// esta função pode informar `taxaPorCaminhao` (Map caminhao_id -> taxa)
+// quando está somando semanas de vários caminhões/frotas ao mesmo tempo,
+// ou `taxaPadrao` quando já sabe a taxa (ex: uma única frota/caminhão).
+function taxaDaSemana(semana, taxaPorCaminhao, taxaPadrao) {
+  if (taxaPorCaminhao && taxaPorCaminhao.has(semana.caminhao_id)) {
+    return taxaPorCaminhao.get(semana.caminhao_id);
+  }
+
+  return taxaPadrao ?? VALOR_POR_VOLUME;
+}
+
 export function chavePeriodo(inicio, fim) {
   return `${inicio}_${fim}`;
 }
@@ -20,7 +33,7 @@ export function calcularResumoPorPeriodo(
   semanasViagens,
   semanasAbastecimento,
   semanasDespesas,
-  { inicioFiltro, fimFiltro } = {}
+  { inicioFiltro, fimFiltro, taxaPorCaminhao, taxaPadrao } = {}
 ) {
   const periodos = new Map();
 
@@ -33,6 +46,7 @@ export function calcularResumoPorPeriodo(
         fim,
         totalViagens: 0,
         volumeEntregue: 0,
+        receitaBruta: 0,
         totalCombustivel: 0,
         totalDespesasExtras: 0,
       });
@@ -47,8 +61,12 @@ export function calcularResumoPorPeriodo(
       const periodo = pegarPeriodo(semana.inicio, semana.fim);
       periodo.totalViagens += semana.viagens.length;
 
+      const taxa = taxaDaSemana(semana, taxaPorCaminhao, taxaPadrao);
+
       semana.viagens.forEach((viagem) => {
-        periodo.volumeEntregue += converterNumero(viagem.volEntregue) || 0;
+        const volEntregue = converterNumero(viagem.volEntregue) || 0;
+        periodo.volumeEntregue += volEntregue;
+        periodo.receitaBruta += volEntregue * taxa;
       });
     });
 
@@ -74,17 +92,15 @@ export function calcularResumoPorPeriodo(
 
   return Array.from(periodos.values())
     .map((periodo) => {
-      const receitaBruta = periodo.volumeEntregue * VALOR_POR_VOLUME;
-      const pagamentoMotoristas = receitaBruta * PERCENTUAL_MOTORISTA;
+      const pagamentoMotoristas = periodo.receitaBruta * PERCENTUAL_MOTORISTA;
       const gastos =
         periodo.totalCombustivel +
         periodo.totalDespesasExtras +
         pagamentoMotoristas;
-      const lucro = receitaBruta - gastos;
+      const lucro = periodo.receitaBruta - gastos;
 
       return {
         ...periodo,
-        receitaBruta,
         pagamentoMotoristas,
         gastos,
         lucro,

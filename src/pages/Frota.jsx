@@ -6,10 +6,12 @@ import {
   excluirCaminhao,
   FROTAS,
   FROTA_TERCEIRIZADA,
+  FROTA_BAGACO,
+  taxaDaFrota,
+  unidadeDaFrota,
 } from "../data/caminhoes";
 import { db } from "../lib/supabase";
 import {
-  VALOR_POR_VOLUME,
   TRANSPORTADORA_CM,
   TRANSPORTADORA_TERCEIRIZADA,
 } from "../data/config";
@@ -157,6 +159,9 @@ function Frota() {
           ? TRANSPORTADORA_TERCEIRIZADA
           : TRANSPORTADORA_CM;
 
+      const taxa = taxaDaFrota(frotaRelatorio);
+      const unidade = unidadeDaFrota(frotaRelatorio);
+
       const [caminhoesTodos, semanas] = await Promise.all([
         db.select("caminhoes", "select=id,frota"),
         db.select(
@@ -188,9 +193,9 @@ function Frota() {
               volEntregue,
               diferenca,
               cte: viagem.cte,
-              valorFiscal: volFiscal * VALOR_POR_VOLUME,
-              complemento: diferenca * VALOR_POR_VOLUME,
-              valorFisico: volEntregue * VALOR_POR_VOLUME,
+              valorFiscal: volFiscal * taxa,
+              complemento: diferenca * taxa,
+              valorFisico: volEntregue * taxa,
               dataEntrega: viagem.dataEntrega,
             });
           });
@@ -254,12 +259,12 @@ function Frota() {
         [
           "Data NF",
           "Nº NF",
-          "Vol. Fiscal    (m³)",
-          "Vol. Entregue  (m³)",
-          "Diferença     (m³)",
+          `${unidade.abreviado} Fiscal    (${unidade.curta})`,
+          `${unidade.abreviado} Entregue  (${unidade.curta})`,
+          `Diferença     (${unidade.curta})`,
           "CT-e",
           "Transportadora",
-          "Frete R$/m³",
+          `Frete R$/${unidade.curta}`,
           "Valor Fiscal",
           "Complemento",
           "Valor Fisico",
@@ -273,7 +278,7 @@ function Frota() {
           l.diferenca,
           l.cte || "",
           transportadora,
-          VALOR_POR_VOLUME,
+          taxa,
           l.valorFiscal,
           l.complemento,
           l.valorFisico,
@@ -337,7 +342,11 @@ function Frota() {
       XLSX.utils.book_append_sheet(wb, wsDashboard, "Dashboard");
 
       const rotuloFrota =
-        frotaRelatorio === FROTA_TERCEIRIZADA ? "Terceirizada" : "CM";
+        frotaRelatorio === FROTA_TERCEIRIZADA
+          ? "Terceirizada"
+          : frotaRelatorio === FROTA_BAGACO
+          ? "BagacoDeCana"
+          : "CM";
       const nomeArquivo = `Fechamento_${rotuloFrota}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
       XLSX.writeFile(wb, nomeArquivo);
 

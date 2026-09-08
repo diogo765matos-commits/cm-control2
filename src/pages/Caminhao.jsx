@@ -5,9 +5,11 @@ import {
   atualizarCaminhao,
   FROTAS,
   FROTA_TERCEIRIZADA,
+  FROTA_BAGACO,
+  taxaDaFrota,
+  unidadeDaFrota,
 } from "../data/caminhoes";
 import {
-  VALOR_POR_VOLUME,
   PERCENTUAL_MOTORISTA,
   TRANSPORTADORA_CM,
   TRANSPORTADORA_TERCEIRIZADA,
@@ -408,6 +410,9 @@ function Caminhao() {
   }
 
   const ehTerceirizada = caminhao.frota === FROTA_TERCEIRIZADA;
+  const ehBagaco = caminhao.frota === FROTA_BAGACO;
+  const taxaCaminhao = taxaDaFrota(caminhao.frota);
+  const unidade = unidadeDaFrota(caminhao.frota);
 
   if (
     ehTerceirizada &&
@@ -427,7 +432,7 @@ function Caminhao() {
     semanas,
     semanasAbastecimento,
     semanasDespesas,
-    { inicioFiltro: filtroInicio, fimFiltro: filtroFim }
+    { inicioFiltro: filtroInicio, fimFiltro: filtroFim, taxaPadrao: taxaCaminhao }
   );
 
   const totalCaminhao = somarPeriodos(periodosCaminhao);
@@ -561,9 +566,9 @@ function Caminhao() {
           volEntregue,
           diferenca,
           cte: viagem.cte,
-          valorFiscal: volFiscal * VALOR_POR_VOLUME,
-          complemento: diferenca * VALOR_POR_VOLUME,
-          valorFisico: volEntregue * VALOR_POR_VOLUME,
+          valorFiscal: volFiscal * taxaCaminhao,
+          complemento: diferenca * taxaCaminhao,
+          valorFisico: volEntregue * taxaCaminhao,
           dataEntrega: viagem.dataEntrega,
         };
       });
@@ -626,12 +631,12 @@ function Caminhao() {
         [
           "Data NF",
           "Nº NF",
-          "Vol. Fiscal    (m³)",
-          "Vol. Entregue  (m³)",
-          "Diferença     (m³)",
+          `${unidade.abreviado} Fiscal    (${unidade.curta})`,
+          `${unidade.abreviado} Entregue  (${unidade.curta})`,
+          `Diferença     (${unidade.curta})`,
           "CT-e",
           "Transportadora",
-          "Frete R$/m³",
+          `Frete R$/${unidade.curta}`,
           "Valor Fiscal",
           "Complemento",
           "Valor Fisico",
@@ -645,7 +650,7 @@ function Caminhao() {
           l.diferenca,
           l.cte || "",
           transportadora,
-          VALOR_POR_VOLUME,
+          taxaCaminhao,
           l.valorFiscal,
           l.complemento,
           l.valorFisico,
@@ -1579,7 +1584,7 @@ function Caminhao() {
                             return (
                               <div style={estiloEstatisticasSemana}>
                                 <MiniEstatistica
-                                  titulo="Volume Entregue"
+                                  titulo={`${unidade.rotulo} Entregue`}
                                   valor={formatarNumero(
                                     dadosPeriodo?.volumeEntregue || 0
                                   )}
@@ -1740,7 +1745,7 @@ function Caminhao() {
                       />
 
                       <Campo
-                        titulo="Vol. Fiscal"
+                        titulo={`${unidade.abreviado} Fiscal`}
                         type="number"
                         step="0.01"
                         value={novaViagem.volFiscal}
@@ -1753,7 +1758,7 @@ function Caminhao() {
                       />
 
                       <Campo
-                        titulo="Vol. Entregue"
+                        titulo={`${unidade.abreviado} Entregue`}
                         type="number"
                         step="0.01"
                         value={novaViagem.volEntregue}
@@ -1830,10 +1835,10 @@ function Caminhao() {
                           <th style={estiloTh}>NF</th>
                           <th style={estiloTh}>CTe</th>
                           <th style={estiloTh}>
-                            Vol. Fiscal
+                            {unidade.abreviado} Fiscal
                           </th>
                           <th style={estiloTh}>
-                            Vol. Entregue
+                            {unidade.abreviado} Entregue
                           </th>
                           <th style={estiloTh}>
                             Diferença
@@ -2971,7 +2976,7 @@ function Caminhao() {
   );
 
   const receitaBruta =
-    volumeTotalEntregue * VALOR_POR_VOLUME;
+    volumeTotalEntregue * taxaCaminhao;
 
   const pagamentoMotorista =
     receitaBruta * PERCENTUAL_MOTORISTA;
@@ -2985,14 +2990,14 @@ function Caminhao() {
 
       <p style={estiloLegenda}>
         {ehTerceirizada
-          ? "Volume entregue e valor bruto das operações deste caminhão."
+          ? `${unidade.rotulo} entregue e valor bruto das operações deste caminhão.`
           : "Resumo financeiro das operações deste caminhão."}
       </p>
 
       <div style={estiloCardsResumo}>
 
         <CardResumo
-          titulo="Volume Total Entregue"
+          titulo={`${unidade.rotulo} Total Entregue`}
           valor={formatarNumero(volumeTotalEntregue)}
         />
 
@@ -3004,8 +3009,8 @@ function Caminhao() {
         {!ehTerceirizada && (
           <>
             <CardResumo
-              titulo="Valor por Volume"
-              valor={formatarMoeda(VALOR_POR_VOLUME)}
+              titulo={`Valor por ${unidade.rotulo}`}
+              valor={formatarMoeda(taxaCaminhao)}
             />
 
             <CardResumo
@@ -3040,7 +3045,7 @@ function Caminhao() {
               <tr>
                 <th style={estiloTh}>Semana</th>
                 <th style={estiloTh}>Viagens</th>
-                <th style={estiloTh}>Volume Entregue</th>
+                <th style={estiloTh}>{unidade.rotulo} Entregue</th>
                 <th style={estiloTh}>Valor Bruto</th>
                 {!ehTerceirizada && (
                   <>
@@ -3062,7 +3067,7 @@ function Caminhao() {
                   );
 
                   const valorBrutoSemana =
-                    volumeSemana * VALOR_POR_VOLUME;
+                    volumeSemana * taxaCaminhao;
 
                   const motoristaSemana =
                     valorBrutoSemana * PERCENTUAL_MOTORISTA;

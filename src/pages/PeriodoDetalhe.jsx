@@ -6,7 +6,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/supabase";
-import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
+import {
+  PERCENTUAL_MOTORISTA,
+  VALOR_POR_VOLUME,
+  VALOR_POR_TONELADA_BAGACO,
+} from "../data/config";
+import { taxaDaFrota } from "../data/caminhoes";
 import {
   converterNumero,
   formatarData,
@@ -38,7 +43,7 @@ function PeriodoDetalhe() {
       try {
         const [caminhoes, semanasViagens, semanasAbastecimento, semanasDespesas] =
           await Promise.all([
-            db.select("caminhoes", "select=id,placa,modelo"),
+            db.select("caminhoes", "select=id,placa,modelo,frota"),
             db.select(
               "viagens_semanas",
               `select=viagens,caminhao_id&inicio=eq.${inicio}&fim=eq.${fim}`
@@ -67,6 +72,7 @@ function PeriodoDetalhe() {
           const rotulo = caminhao
             ? `${caminhao.modelo} (${caminhao.placa})`
             : "Caminhão removido";
+          const taxa = taxaDaFrota(caminhao?.frota);
 
           (semana.viagens || []).forEach((viagem) => {
             const volFiscal = converterNumero(viagem.volFiscal) || 0;
@@ -82,9 +88,10 @@ function PeriodoDetalhe() {
               volFiscal,
               volEntregue,
               diferenca,
-              valorFiscal: volFiscal * VALOR_POR_VOLUME,
-              complemento: diferenca * VALOR_POR_VOLUME,
-              valorFisico: volEntregue * VALOR_POR_VOLUME,
+              taxa,
+              valorFiscal: volFiscal * taxa,
+              complemento: diferenca * taxa,
+              valorFisico: volEntregue * taxa,
               dataEntrega: viagem.dataEntrega,
             });
           });
@@ -136,7 +143,7 @@ function PeriodoDetalhe() {
 
   const totalViagens = viagens.length;
   const volumeEntregueTotal = viagens.reduce((s, v) => s + v.volEntregue, 0);
-  const receitaBrutaTotal = volumeEntregueTotal * VALOR_POR_VOLUME;
+  const receitaBrutaTotal = viagens.reduce((s, v) => s + v.valorFisico, 0);
   const pagamentoMotoristas = receitaBrutaTotal * PERCENTUAL_MOTORISTA;
   const gastos = totalCombustivel + totalDespesasExtras + pagamentoMotoristas;
   const lucro = receitaBrutaTotal - gastos;
@@ -148,7 +155,7 @@ function PeriodoDetalhe() {
   const receitaPorCaminhaoMapa = new Map();
   viagens.forEach((v) => {
     const atual = receitaPorCaminhaoMapa.get(v.caminhao) || 0;
-    receitaPorCaminhaoMapa.set(v.caminhao, atual + v.volEntregue * VALOR_POR_VOLUME);
+    receitaPorCaminhaoMapa.set(v.caminhao, atual + v.valorFisico);
   });
   const dadosReceitaPorCaminhao = Array.from(
     receitaPorCaminhaoMapa,
@@ -281,7 +288,7 @@ function PeriodoDetalhe() {
                     <th style={estiloTh}>Diferença</th>
                     <th style={estiloTh}>CT-e</th>
                     <th style={estiloTh}>Transportadora</th>
-                    <th style={estiloTh}>Frete R$/m³</th>
+                    <th style={estiloTh}>Frete R$/Unid.</th>
                     <th style={estiloTh}>Valor Fiscal</th>
                     <th style={estiloTh}>Complemento</th>
                     <th style={estiloTh}>Valor Físico</th>
@@ -300,7 +307,7 @@ function PeriodoDetalhe() {
                       <td style={estiloTd}>{formatarNumero(viagem.diferenca)}</td>
                       <td style={estiloTd}>{viagem.cte || "-"}</td>
                       <td style={estiloTd}>C e M Transportadora</td>
-                      <td style={estiloTd}>{formatarMoeda(VALOR_POR_VOLUME)}</td>
+                      <td style={estiloTd}>{formatarMoeda(viagem.taxa)}</td>
                       <td style={estiloTd}>{formatarMoeda(viagem.valorFiscal)}</td>
                       <td style={estiloTd}>{formatarMoeda(viagem.complemento)}</td>
                       <td style={estiloTd}>{formatarMoeda(viagem.valorFisico)}</td>
@@ -323,9 +330,11 @@ function PeriodoDetalhe() {
             </div>
 
             <p style={estiloAviso}>
-              ℹ️ Transportadora e Frete R$/m³ ainda não são cadastrados por
-              viagem — aqui é usada a taxa padrão configurada no sistema (
-              {formatarMoeda(VALOR_POR_VOLUME)}/m³).
+              ℹ️ Transportadora e Frete ainda não são cadastrados por viagem —
+              aqui é usada a taxa padrão da frota de cada caminhão (
+              {formatarMoeda(VALOR_POR_VOLUME)}/m³ para C&M e Terceirizada,{" "}
+              {formatarMoeda(VALOR_POR_TONELADA_BAGACO)}/ton para Bagaço de
+              Cana).
             </p>
           </>
         )}
