@@ -108,3 +108,26 @@ alter table caminhoes drop column if exists documentos;
 
 delete from storage.objects where bucket_id = 'documentos-caminhoes';
 delete from storage.buckets where id = 'documentos-caminhoes';
+
+-- =========================================================================
+-- MIGRAÇÃO: aba "ICMS a Pagar" (dentro do caminhão, só Frota Terceirizada)
+-- Lançamentos simples de ICMS por CT-e: data, valor e o próprio CT-e.
+-- Se o seu banco já existia antes dessa funcionalidade, rode só o bloco
+-- abaixo no SQL Editor (o restante do arquivo, acima, já foi executado).
+-- =========================================================================
+
+create table if not exists icms_registros (
+  id bigint generated always as identity primary key,
+  caminhao_id bigint not null references caminhoes(id) on delete cascade,
+  data date not null,
+  valor numeric not null,
+  cte text,
+  criado_em timestamptz not null default now()
+);
+
+alter table icms_registros enable row level security;
+
+create policy "usuarios autenticados - icms" on icms_registros
+  for all
+  using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');

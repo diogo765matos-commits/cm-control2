@@ -39,6 +39,11 @@ import {
   atualizarSemanaDespesas as atualizarSemanaDespesasApi,
 } from "../data/despesas";
 import {
+  getIcms,
+  adicionarIcms as adicionarIcmsApi,
+  excluirIcms as excluirIcmsApi,
+} from "../data/icms";
+import {
   converterNumero,
   formatarData,
   formatarMoeda,
@@ -326,11 +331,14 @@ function Caminhao() {
         setCaminhao(encontrado);
 
         if (encontrado) {
-          const [viagensSemanas, abastecimentoSemanas, despesasSemanas] =
+          const [viagensSemanas, abastecimentoSemanas, despesasSemanas, icms] =
             await Promise.all([
               getSemanasViagens(encontrado.id),
               getSemanasAbastecimento(encontrado.id),
               getSemanasDespesas(encontrado.id),
+              encontrado.frota === FROTA_TERCEIRIZADA
+                ? getIcms(encontrado.id)
+                : Promise.resolve([]),
             ]);
 
           if (!ativo) return;
@@ -338,6 +346,7 @@ function Caminhao() {
           setSemanas(viagensSemanas);
           setSemanasAbastecimento(abastecimentoSemanas);
           setSemanasDespesas(despesasSemanas);
+          setIcmsRegistros(icms);
         }
       } catch (e) {
         if (ativo) setErroCarregamento(e.message);
@@ -371,6 +380,18 @@ function Caminhao() {
     cnh: "",
     cpf: "",
     telefone: "",
+  });
+
+  // ======================
+  // ICMS A PAGAR (só Frota Terceirizada)
+  // ======================
+
+  const [icmsRegistros, setIcmsRegistros] = useState([]);
+
+  const [novoIcms, setNovoIcms] = useState({
+    data: "",
+    valor: "",
+    cte: "",
   });
 
   // ======================
@@ -418,8 +439,13 @@ function Caminhao() {
   if (
     ehTerceirizada &&
     abaAtiva !== "viagens" &&
-    abaAtiva !== "financeiro"
+    abaAtiva !== "financeiro" &&
+    abaAtiva !== "icms"
   ) {
+    setAbaAtiva("viagens");
+  }
+
+  if (!ehTerceirizada && abaAtiva === "icms") {
     setAbaAtiva("viagens");
   }
 
@@ -509,6 +535,51 @@ function Caminhao() {
       setEditandoDocumentacao(false);
     } catch (e) {
       alert("Não foi possível salvar as alterações: " + e.message);
+    }
+  }
+
+  // =========================
+  // ICMS A PAGAR
+  // =========================
+
+  async function adicionarIcmsRegistro() {
+    if (!novoIcms.data || !novoIcms.valor) {
+      alert("Informe pelo menos a data e o valor.");
+      return;
+    }
+
+    try {
+      const registro = await adicionarIcmsApi(caminhao.id, {
+        data: novoIcms.data,
+        valor: Number(novoIcms.valor),
+        cte: novoIcms.cte,
+      });
+
+      setIcmsRegistros((atuais) =>
+        [registro, ...atuais].sort((a, b) => (a.data < b.data ? 1 : -1))
+      );
+
+      setNovoIcms({ data: "", valor: "", cte: "" });
+    } catch (e) {
+      alert("Não foi possível salvar o ICMS: " + e.message);
+    }
+  }
+
+  async function excluirIcmsRegistro(id) {
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir este lançamento de ICMS?"
+    );
+
+    if (!confirmar) return;
+
+    try {
+      await excluirIcmsApi(id);
+
+      setIcmsRegistros((atuais) =>
+        atuais.filter((registro) => registro.id !== id)
+      );
+    } catch (e) {
+      alert("Não foi possível excluir o ICMS: " + e.message);
     }
   }
 
@@ -1254,6 +1325,15 @@ function Caminhao() {
 >
   💰 Financeiro
 </button>
+
+{ehTerceirizada && (
+  <button
+    onClick={() => setAbaAtiva("icms")}
+    style={estiloAba(abaAtiva === "icms")}
+  >
+    🧾 ICMS a Pagar
+  </button>
+)}
 
 {!ehTerceirizada && (
   <button
@@ -2990,6 +3070,128 @@ function Caminhao() {
   );
 
 })()}
+
+        {/* ICMS A PAGAR */}
+
+        {abaAtiva === "icms" && (() => {
+          const totalIcms = icmsRegistros.reduce(
+            (total, registro) => total + (Number(registro.valor) || 0),
+            0
+          );
+
+          return (
+            <div>
+              <h2>ICMS a Pagar</h2>
+
+              <p style={estiloLegenda}>
+                Lançamentos de ICMS a pagar por CT-e deste caminhão.
+              </p>
+
+              <div style={{ ...estiloFormulario, marginTop: "16px" }}>
+                <h3>Novo Lançamento</h3>
+
+                <div style={estiloCampos}>
+                  <Campo
+                    titulo="Data"
+                    type="date"
+                    value={novoIcms.data}
+                    onChange={(e) =>
+                      setNovoIcms({ ...novoIcms, data: e.target.value })
+                    }
+                  />
+
+                  <Campo
+                    titulo="Valor"
+                    type="number"
+                    step="0.01"
+                    placeholder="R$ 0,00"
+                    value={novoIcms.valor}
+                    onChange={(e) =>
+                      setNovoIcms({ ...novoIcms, valor: e.target.value })
+                    }
+                  />
+
+                  <Campo
+                    titulo="CT-e"
+                    placeholder="Ex: 98471"
+                    value={novoIcms.cte}
+                    onChange={(e) =>
+                      setNovoIcms({ ...novoIcms, cte: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div style={estiloAcoesFormulario}>
+                  <button
+                    style={estiloBotaoDourado}
+                    onClick={adicionarIcmsRegistro}
+                  >
+                    + Adicionar
+                  </button>
+                </div>
+              </div>
+
+              {icmsRegistros.length === 0 ? (
+                <div style={{ ...estiloVazio, marginTop: "20px" }}>
+                  <h3>Nenhum ICMS cadastrado ainda.</h3>
+                </div>
+              ) : (
+                <>
+                  <h3 style={{ marginTop: "30px", marginBottom: "15px" }}>
+                    Total ICMS a Pagar: {formatarMoeda(totalIcms)}
+                  </h3>
+
+                  <div style={estiloTabelaContainer}>
+                    <table style={estiloTabela}>
+                      <thead>
+                        <tr>
+                          <th style={estiloTh}>Data</th>
+                          <th style={estiloTh}>Valor</th>
+                          <th style={estiloTh}>CT-e</th>
+                          <th style={estiloTh}>Ações</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {icmsRegistros.map((registro) => (
+                          <tr key={registro.id}>
+                            <td style={estiloTd}>
+                              {formatarData(registro.data)}
+                            </td>
+
+                            <td style={estiloTd}>
+                              {formatarMoeda(registro.valor)}
+                            </td>
+
+                            <td style={estiloTd}>{registro.cte || "-"}</td>
+
+                            <td style={estiloTd}>
+                              <button
+                                onClick={() =>
+                                  excluirIcmsRegistro(registro.id)
+                                }
+                                style={{
+                                  background: "#dc3545",
+                                  color: "white",
+                                  border: "none",
+                                  padding: "6px 10px",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Excluir
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* DOCUMENTAÇÃO */}
 
