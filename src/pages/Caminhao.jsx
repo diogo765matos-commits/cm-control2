@@ -400,7 +400,8 @@ function Caminhao() {
   // ======================
 
   const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
-  const [periodoRelatorio, setPeriodoRelatorio] = useState("");
+  const [inicioRelatorio, setInicioRelatorio] = useState("");
+  const [fimRelatorio, setFimRelatorio] = useState("");
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
 
   if (carregando) {
@@ -603,23 +604,29 @@ function Caminhao() {
   function abrirRelatorio() {
     setMostrarRelatorio(true);
 
-    if (!periodoRelatorio && periodosRelatorioCaminhao.length > 0) {
-      setPeriodoRelatorio(
-        chavePeriodo(
-          periodosRelatorioCaminhao[0].inicio,
-          periodosRelatorioCaminhao[0].fim
-        )
-      );
+    if (!inicioRelatorio && !fimRelatorio && periodosRelatorioCaminhao.length > 0) {
+      setInicioRelatorio(periodosRelatorioCaminhao[0].inicio);
+      setFimRelatorio(periodosRelatorioCaminhao[0].fim);
     }
   }
 
-  async function gerarRelatorioCaminhao() {
-    const periodo = periodosRelatorioCaminhao.find(
-      (p) => chavePeriodo(p.inicio, p.fim) === periodoRelatorio
-    );
+  function aplicarAtalhoPeriodo(dias) {
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - dias + 1);
 
-    if (!periodo) {
-      alert("Escolha um período.");
+    setInicioRelatorio(inicio.toISOString().slice(0, 10));
+    setFimRelatorio(fim.toISOString().slice(0, 10));
+  }
+
+  async function gerarRelatorioCaminhao() {
+    if (!inicioRelatorio || !fimRelatorio) {
+      alert("Escolha o início e o fim do período.");
+      return;
+    }
+
+    if (inicioRelatorio > fimRelatorio) {
+      alert("A data de início precisa ser antes (ou igual) à data de fim.");
       return;
     }
 
@@ -639,23 +646,27 @@ function Caminhao() {
         ? TRANSPORTADORA_TERCEIRIZADA
         : TRANSPORTADORA_CM;
 
-      const semana = semanas.find(
-        (s) => s.inicio === periodo.inicio && s.fim === periodo.fim
+      const semanasNoPeriodo = semanas.filter(
+        (s) => s.inicio >= inicioRelatorio && s.inicio <= fimRelatorio
       );
 
-      const nomeArquivo = `Fechamento_${caminhao.placa}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
+      const viagensDoPeriodo = [];
+      semanasNoPeriodo.forEach((semana) => {
+        (semana.viagens || []).forEach((viagem) => {
+          viagensDoPeriodo.push({ ...viagem, placa: caminhao.placa });
+        });
+      });
+
+      const nomeArquivo = `Fechamento_${caminhao.placa}_${inicioRelatorio}_a_${fimRelatorio}.xlsx`;
 
       const gerou = await gerarEBaixarPlanilha({
         ExcelJS,
         nomeArquivo,
-        periodoLabel: `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
+        periodoLabel: `${formatarData(inicioRelatorio)} a ${formatarData(fimRelatorio)}`,
         transportadora,
         unidade,
         taxa: taxaCaminhao,
-        viagens: (semana?.viagens || []).map((v) => ({
-          ...v,
-          placa: caminhao.placa,
-        })),
+        viagens: viagensDoPeriodo,
         comFiscal: !ehBagaco,
         comAbasPorCaminhao: false,
       });
@@ -1101,24 +1112,52 @@ function Caminhao() {
               </p>
             ) : (
               <>
-                <label style={estiloLabelModal}>
-                  Período
-
-                  <select
-                    value={periodoRelatorio}
-                    onChange={(e) => setPeriodoRelatorio(e.target.value)}
-                    style={estiloInput}
+                <div style={estiloAtalhosPeriodo}>
+                  <button
+                    type="button"
+                    style={estiloBotaoAtalho}
+                    onClick={() => aplicarAtalhoPeriodo(7)}
                   >
-                    {periodosRelatorioCaminhao.map((p) => {
-                      const chave = chavePeriodo(p.inicio, p.fim);
+                    Últimos 7 dias
+                  </button>
 
-                      return (
-                        <option key={chave} value={chave}>
-                          {formatarData(p.inicio)} até {formatarData(p.fim)}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  <button
+                    type="button"
+                    style={estiloBotaoAtalho}
+                    onClick={() => aplicarAtalhoPeriodo(14)}
+                  >
+                    Últimos 14 dias
+                  </button>
+
+                  <button
+                    type="button"
+                    style={estiloBotaoAtalho}
+                    onClick={() => aplicarAtalhoPeriodo(30)}
+                  >
+                    Últimos 30 dias
+                  </button>
+                </div>
+
+                <label style={estiloLabelModal}>
+                  Início
+
+                  <input
+                    type="date"
+                    value={inicioRelatorio}
+                    onChange={(e) => setInicioRelatorio(e.target.value)}
+                    style={estiloInput}
+                  />
+                </label>
+
+                <label style={estiloLabelModal}>
+                  Fim
+
+                  <input
+                    type="date"
+                    value={fimRelatorio}
+                    onChange={(e) => setFimRelatorio(e.target.value)}
+                    style={estiloInput}
+                  />
                 </label>
 
                 <div style={estiloAcoesFormulario}>
@@ -3362,6 +3401,24 @@ const estiloLabelModal = {
   fontWeight: "600",
   color: "#444",
   marginTop: "18px",
+};
+
+const estiloAtalhosPeriodo = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "16px",
+};
+
+const estiloBotaoAtalho = {
+  background: "#f2f2f2",
+  color: "#333",
+  border: "1px solid var(--cor-borda)",
+  padding: "6px 12px",
+  borderRadius: "999px",
+  cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: "600",
 };
 
 // =========================

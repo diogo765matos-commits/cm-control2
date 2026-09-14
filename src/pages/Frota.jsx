@@ -16,7 +16,6 @@ import {
   TRANSPORTADORA_TERCEIRIZADA,
 } from "../data/config";
 import { formatarData } from "../utils/formatadores";
-import { chavePeriodo } from "../utils/resumoPeriodos";
 import { gerarEBaixarPlanilha } from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 
@@ -28,8 +27,9 @@ function Frota() {
   const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
   const [frotaRelatorio, setFrotaRelatorio] = useState("");
   const [carregandoPeriodos, setCarregandoPeriodos] = useState(false);
-  const [periodosDisponiveis, setPeriodosDisponiveis] = useState([]);
-  const [periodoEscolhido, setPeriodoEscolhido] = useState("");
+  const [semPeriodos, setSemPeriodos] = useState(false);
+  const [inicioRelatorio, setInicioRelatorio] = useState("");
+  const [fimRelatorio, setFimRelatorio] = useState("");
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
 
   async function carregar() {
@@ -90,8 +90,9 @@ function Frota() {
   async function abrirRelatorio(tipoFrota) {
     setFrotaRelatorio(tipoFrota);
     setMostrarRelatorio(true);
-    setPeriodosDisponiveis([]);
-    setPeriodoEscolhido("");
+    setSemPeriodos(false);
+    setInicioRelatorio("");
+    setFimRelatorio("");
 
     setCarregandoPeriodos(true);
 
@@ -107,25 +108,21 @@ function Frota() {
           .map((c) => c.id)
       );
 
-      const mapa = new Map();
-      semanas
-        .filter((semana) => idsDaFrota.has(semana.caminhao_id))
-        .forEach((semana) => {
-          mapa.set(chavePeriodo(semana.inicio, semana.fim), {
-            inicio: semana.inicio,
-            fim: semana.fim,
-          });
-        });
-
-      const lista = Array.from(mapa.values()).sort((a, b) =>
-        a.inicio < b.inicio ? 1 : -1
+      const semanasDaFrota = semanas.filter((semana) =>
+        idsDaFrota.has(semana.caminhao_id)
       );
 
-      setPeriodosDisponiveis(lista);
-
-      if (lista.length > 0) {
-        setPeriodoEscolhido(chavePeriodo(lista[0].inicio, lista[0].fim));
+      if (semanasDaFrota.length === 0) {
+        setSemPeriodos(true);
+        return;
       }
+
+      const maisRecente = semanasDaFrota.reduce((atual, semana) =>
+        !atual || semana.inicio > atual.inicio ? semana : atual
+      , null);
+
+      setInicioRelatorio(maisRecente.inicio);
+      setFimRelatorio(maisRecente.fim);
     } catch (e) {
       alert("Não foi possível carregar os períodos: " + e.message);
     } finally {
@@ -133,13 +130,23 @@ function Frota() {
     }
   }
 
-  async function gerarRelatorio() {
-    const periodo = periodosDisponiveis.find(
-      (p) => chavePeriodo(p.inicio, p.fim) === periodoEscolhido
-    );
+  function aplicarAtalhoPeriodo(dias) {
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - dias + 1);
 
-    if (!periodo) {
-      alert("Escolha um período.");
+    setInicioRelatorio(inicio.toISOString().slice(0, 10));
+    setFimRelatorio(fim.toISOString().slice(0, 10));
+  }
+
+  async function gerarRelatorio() {
+    if (!inicioRelatorio || !fimRelatorio) {
+      alert("Escolha o início e o fim do período.");
+      return;
+    }
+
+    if (inicioRelatorio > fimRelatorio) {
+      alert("A data de início precisa ser antes (ou igual) à data de fim.");
       return;
     }
 
@@ -167,7 +174,7 @@ function Frota() {
         db.select("caminhoes", "select=id,frota,placa"),
         db.select(
           "viagens_semanas",
-          `select=viagens,caminhao_id&inicio=eq.${periodo.inicio}&fim=eq.${periodo.fim}`
+          `select=viagens,caminhao_id&inicio=gte.${inicioRelatorio}&inicio=lte.${fimRelatorio}`
         ),
       ]);
 
@@ -199,12 +206,12 @@ function Frota() {
           : frotaRelatorio === FROTA_BAGACO
           ? "BagacoDeCana"
           : "CM";
-      const nomeArquivo = `Fechamento_${rotuloFrota}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
+      const nomeArquivo = `Fechamento_${rotuloFrota}_${inicioRelatorio}_a_${fimRelatorio}.xlsx`;
 
       const gerou = await gerarEBaixarPlanilha({
         ExcelJS,
         nomeArquivo,
-        periodoLabel: `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
+        periodoLabel: `${formatarData(inicioRelatorio)} a ${formatarData(fimRelatorio)}`,
         transportadora,
         unidade,
         taxa,
@@ -261,30 +268,58 @@ function Frota() {
 
             {carregandoPeriodos ? (
               <p style={{ marginTop: "16px" }}>Carregando períodos...</p>
-            ) : periodosDisponiveis.length === 0 ? (
+            ) : semPeriodos ? (
               <p style={{ ...estiloLegenda, marginTop: "16px" }}>
                 Nenhuma semana com viagens cadastradas ainda.
               </p>
             ) : (
               <>
-                <label style={estiloLabelModal}>
-                  Período
-
-                  <select
-                    value={periodoEscolhido}
-                    onChange={(e) => setPeriodoEscolhido(e.target.value)}
-                    style={estiloInput}
+                <div style={estiloAtalhosPeriodo}>
+                  <button
+                    type="button"
+                    style={estiloBotaoAtalho}
+                    onClick={() => aplicarAtalhoPeriodo(7)}
                   >
-                    {periodosDisponiveis.map((p) => {
-                      const chave = chavePeriodo(p.inicio, p.fim);
+                    Últimos 7 dias
+                  </button>
 
-                      return (
-                        <option key={chave} value={chave}>
-                          {formatarData(p.inicio)} até {formatarData(p.fim)}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  <button
+                    type="button"
+                    style={estiloBotaoAtalho}
+                    onClick={() => aplicarAtalhoPeriodo(14)}
+                  >
+                    Últimos 14 dias
+                  </button>
+
+                  <button
+                    type="button"
+                    style={estiloBotaoAtalho}
+                    onClick={() => aplicarAtalhoPeriodo(30)}
+                  >
+                    Últimos 30 dias
+                  </button>
+                </div>
+
+                <label style={estiloLabelModal}>
+                  Início
+
+                  <input
+                    type="date"
+                    value={inicioRelatorio}
+                    onChange={(e) => setInicioRelatorio(e.target.value)}
+                    style={estiloInput}
+                  />
+                </label>
+
+                <label style={estiloLabelModal}>
+                  Fim
+
+                  <input
+                    type="date"
+                    value={fimRelatorio}
+                    onChange={(e) => setFimRelatorio(e.target.value)}
+                    style={estiloInput}
+                  />
                 </label>
 
                 <div style={estiloAcoesFormulario}>
@@ -696,6 +731,24 @@ const estiloLabelModal = {
   fontWeight: "600",
   color: "#444",
   marginTop: "18px",
+};
+
+const estiloAtalhosPeriodo = {
+  display: "flex",
+  gap: "8px",
+  flexWrap: "wrap",
+  marginTop: "16px",
+};
+
+const estiloBotaoAtalho = {
+  background: "#f2f2f2",
+  color: "#333",
+  border: "1px solid var(--cor-borda)",
+  padding: "6px 12px",
+  borderRadius: "999px",
+  cursor: "pointer",
+  fontSize: "12px",
+  fontWeight: "600",
 };
 
 export default Frota;
