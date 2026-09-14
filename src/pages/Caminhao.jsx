@@ -649,7 +649,10 @@ function Caminhao() {
         transportadora,
         unidade,
         taxa: taxaCaminhao,
-        viagens: semana?.viagens || [],
+        viagens: (semana?.viagens || []).map((v) => ({
+          ...v,
+          placa: caminhao.placa,
+        })),
         comFiscal: !ehBagaco,
       });
 

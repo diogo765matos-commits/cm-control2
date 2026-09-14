@@ -164,7 +164,7 @@ function Frota() {
       const unidade = unidadeDaFrota(frotaRelatorio);
 
       const [caminhoesTodos, semanas] = await Promise.all([
-        db.select("caminhoes", "select=id,frota"),
+        db.select("caminhoes", "select=id,frota,placa"),
         db.select(
           "viagens_semanas",
           `select=viagens,caminhao_id&inicio=eq.${periodo.inicio}&fim=eq.${periodo.fim}`
@@ -177,13 +177,19 @@ function Frota() {
           .map((c) => c.id)
       );
 
+      const placaPorId = new Map(
+        caminhoesTodos.map((c) => [c.id, c.placa])
+      );
+
       const viagensDaFrota = [];
 
       semanas
         .filter((semana) => idsDaFrota.has(semana.caminhao_id))
         .forEach((semana) => {
+          const placa = placaPorId.get(semana.caminhao_id) || "";
+
           (semana.viagens || []).forEach((viagem) => {
-            viagensDaFrota.push(viagem);
+            viagensDaFrota.push({ ...viagem, placa });
           });
         });
 

@@ -55,6 +55,7 @@ function construirPlanilhaCompleta({
 
     return {
       data: viagem.data,
+      placa: viagem.placa || "",
       nf: viagem.nf,
       cte: viagem.cte,
       volFiscal,
@@ -121,6 +122,7 @@ function construirPlanilhaCompleta({
     [],
     [
       "Data NF",
+      "Placa",
       "Nº NF",
       `${unidade.abreviado} Fiscal    (${unidade.curta})`,
       `${unidade.abreviado} Entregue  (${unidade.curta})`,
@@ -135,6 +137,7 @@ function construirPlanilhaCompleta({
     ],
     ...linhas.map((l) => [
       formatarData(l.data),
+      l.placa,
       l.nf || "",
       l.volFiscal,
       l.volEntregue,
@@ -149,6 +152,7 @@ function construirPlanilhaCompleta({
     ]),
     [
       "TOTAL GERAL= ",
+      null,
       linhas.length,
       totalVolFiscal,
       totalVolEntregue,
@@ -166,16 +170,17 @@ function construirPlanilhaCompleta({
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
   ws["!merges"] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 12 } },
     { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } },
     { s: { r: 2, c: 4 }, e: { r: 2, c: 7 } },
-    { s: { r: 2, c: 8 }, e: { r: 2, c: 11 } },
+    { s: { r: 2, c: 8 }, e: { r: 2, c: 12 } },
     { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
     { s: { r: 3, c: 4 }, e: { r: 3, c: 7 } },
-    { s: { r: 3, c: 8 }, e: { r: 3, c: 11 } },
+    { s: { r: 3, c: 8 }, e: { r: 3, c: 12 } },
   ];
 
   ws["!cols"] = [
+    { wch: 12 },
     { wch: 12 },
     { wch: 8 },
     { wch: 14 },
@@ -220,6 +225,7 @@ function construirPlanilhaSimplificada({
 
     return {
       data: viagem.data,
+      placa: viagem.placa || "",
       nf: viagem.nf,
       volEntregue,
       valor: volEntregue * taxa,
@@ -245,6 +251,7 @@ function construirPlanilhaSimplificada({
     [],
     [
       "Data NF",
+      "Placa",
       "Nº NF",
       `${unidade.abreviado} Entregue  (${unidade.curta})`,
       "Valor (R$)",
@@ -252,25 +259,34 @@ function construirPlanilhaSimplificada({
     ],
     ...linhas.map((l) => [
       formatarData(l.data),
+      l.placa,
       l.nf || "",
       l.volEntregue,
       l.valor,
       l.dataEntrega ? formatarData(l.dataEntrega) : "",
     ]),
-    ["TOTAL GERAL= ", linhas.length, totalVolEntregue, totalValor, null],
+    [
+      "TOTAL GERAL= ",
+      null,
+      linhas.length,
+      totalVolEntregue,
+      totalValor,
+      null,
+    ],
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
   ws["!merges"] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
     { s: { r: 2, c: 0 }, e: { r: 2, c: 1 } },
-    { s: { r: 2, c: 2 }, e: { r: 2, c: 4 } },
+    { s: { r: 2, c: 2 }, e: { r: 2, c: 5 } },
     { s: { r: 3, c: 0 }, e: { r: 3, c: 1 } },
-    { s: { r: 3, c: 2 }, e: { r: 3, c: 4 } },
+    { s: { r: 3, c: 2 }, e: { r: 3, c: 5 } },
   ];
 
   ws["!cols"] = [
+    { wch: 12 },
     { wch: 12 },
     { wch: 8 },
     { wch: 18 },
