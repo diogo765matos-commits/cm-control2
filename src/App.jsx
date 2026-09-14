@@ -62,7 +62,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/frota" element={<Frota />} />
-            <Route path="/caminhao/:placa" element={<Caminhao />} />
+            <Route path="/caminhao/:id" element={<Caminhao />} />
             <Route path="/despesas-extras" element={<DespesasExtras />} />
             <Route path="/periodo/:inicio/:fim" element={<PeriodoDetalhe />} />
             <Route path="*" element={<Navigate to="/" replace />} />

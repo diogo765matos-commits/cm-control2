@@ -463,7 +463,7 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir, onRelatorio }) 
               <div style={estiloAcoesCard}>
                 <button
                   style={estiloBotaoEscuro}
-                  onClick={() => navigate(`/caminhao/${caminhao.placa}`)}
+                  onClick={() => navigate(`/caminhao/${caminhao.id}`)}
                 >
                   Abrir →
                 </button>

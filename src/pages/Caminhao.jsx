@@ -60,7 +60,7 @@ import DateRangeFilter from "../components/DateRangeFilter";
 import KpiCard, { CORES_KPI } from "../components/KpiCard";
 
 function Caminhao() {
-  const { placa } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [carregando, setCarregando] = useState(true);
@@ -325,7 +325,7 @@ function Caminhao() {
       try {
         const caminhoes = await getCaminhoes();
         const encontrado =
-          caminhoes.find((item) => item.placa === placa) || null;
+          caminhoes.find((item) => String(item.id) === id) || null;
 
         if (!ativo) return;
         setCaminhao(encontrado);
@@ -360,12 +360,13 @@ function Caminhao() {
     return () => {
       ativo = false;
     };
-  }, [placa]);
+  }, [id]);
 
   const [editandoCaminhao, setEditandoCaminhao] = useState(false);
 
   const [dadosEdicao, setDadosEdicao] = useState({
     modelo: "",
+    placa: "",
     motorista: "",
     frota: "",
   });
@@ -486,6 +487,7 @@ function Caminhao() {
   function abrirEdicaoCaminhao() {
     setDadosEdicao({
       modelo: caminhao.modelo,
+      placa: caminhao.placa,
       motorista: caminhao.motorista,
       frota: caminhao.frota,
     });
@@ -494,14 +496,29 @@ function Caminhao() {
   }
 
   async function salvarEdicaoCaminhao() {
-    if (!dadosEdicao.modelo.trim() || !dadosEdicao.motorista.trim()) {
+    const novaPlaca = dadosEdicao.placa.trim().toUpperCase();
+
+    if (!dadosEdicao.modelo.trim() || !novaPlaca || !dadosEdicao.motorista.trim()) {
       alert("Preencha todos os campos.");
       return;
     }
 
     try {
+      if (novaPlaca !== caminhao.placa) {
+        const todosCaminhoes = await getCaminhoes();
+        const jaExiste = todosCaminhoes.some(
+          (c) => c.id !== caminhao.id && c.placa === novaPlaca
+        );
+
+        if (jaExiste) {
+          alert("Já existe um caminhão cadastrado com essa placa.");
+          return;
+        }
+      }
+
       const atualizado = await atualizarCaminhao(caminhao.id, {
         modelo: dadosEdicao.modelo,
+        placa: novaPlaca,
         motorista: dadosEdicao.motorista,
         frota: dadosEdicao.frota,
       });
@@ -1150,10 +1167,13 @@ function Caminhao() {
                 }
               />
 
-              <div style={estiloLabel}>
-                Placa
-                <span style={estiloPlacaFixa}>{caminhao.placa}</span>
-              </div>
+              <Campo
+                titulo="Placa"
+                value={dadosEdicao.placa}
+                onChange={(e) =>
+                  setDadosEdicao({ ...dadosEdicao, placa: e.target.value })
+                }
+              />
 
               <Campo
                 titulo="Motorista"
