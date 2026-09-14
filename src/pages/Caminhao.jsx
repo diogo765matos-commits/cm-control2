@@ -54,7 +54,7 @@ import {
   chavePeriodo,
   somarPeriodos,
 } from "../utils/resumoPeriodos";
-import { construirPlanilhaFechamento } from "../utils/relatorioExcel";
+import { gerarEBaixarPlanilha } from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 import DateRangeFilter from "../components/DateRangeFilter";
 import KpiCard, { CORES_KPI } from "../components/KpiCard";
@@ -613,7 +613,7 @@ function Caminhao() {
     }
   }
 
-  function gerarRelatorioCaminhao() {
+  async function gerarRelatorioCaminhao() {
     const periodo = periodosRelatorioCaminhao.find(
       (p) => chavePeriodo(p.inicio, p.fim) === periodoRelatorio
     );
@@ -623,9 +623,9 @@ function Caminhao() {
       return;
     }
 
-    const XLSX = window.XLSX;
+    const ExcelJS = window.ExcelJS;
 
-    if (!XLSX) {
+    if (!ExcelJS) {
       alert(
         "Não foi possível carregar o gerador de planilhas. Recarregue a página e tente de novo."
       );
@@ -643,8 +643,11 @@ function Caminhao() {
         (s) => s.inicio === periodo.inicio && s.fim === periodo.fim
       );
 
-      const wb = construirPlanilhaFechamento({
-        XLSX,
+      const nomeArquivo = `Fechamento_${caminhao.placa}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
+
+      const gerou = await gerarEBaixarPlanilha({
+        ExcelJS,
+        nomeArquivo,
         periodoLabel: `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
         transportadora,
         unidade,
@@ -654,15 +657,13 @@ function Caminhao() {
           placa: caminhao.placa,
         })),
         comFiscal: !ehBagaco,
+        comAbasPorCaminhao: false,
       });
 
-      if (!wb) {
+      if (!gerou) {
         alert("Não há viagens cadastradas para esse período.");
         return;
       }
-
-      const nomeArquivo = `Fechamento_${caminhao.placa}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
-      XLSX.writeFile(wb, nomeArquivo);
 
       setMostrarRelatorio(false);
     } catch (e) {

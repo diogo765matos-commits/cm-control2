@@ -17,7 +17,7 @@ import {
 } from "../data/config";
 import { formatarData } from "../utils/formatadores";
 import { chavePeriodo } from "../utils/resumoPeriodos";
-import { construirPlanilhaFechamento } from "../utils/relatorioExcel";
+import { gerarEBaixarPlanilha } from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 
 function Frota() {
@@ -143,9 +143,9 @@ function Frota() {
       return;
     }
 
-    const XLSX = window.XLSX;
+    const ExcelJS = window.ExcelJS;
 
-    if (!XLSX) {
+    if (!ExcelJS) {
       alert(
         "Não foi possível carregar o gerador de planilhas. Recarregue a página e tente de novo."
       );
@@ -193,21 +193,6 @@ function Frota() {
           });
         });
 
-      const wb = construirPlanilhaFechamento({
-        XLSX,
-        periodoLabel: `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
-        transportadora,
-        unidade,
-        taxa,
-        viagens: viagensDaFrota,
-        comFiscal: frotaRelatorio !== FROTA_BAGACO,
-      });
-
-      if (!wb) {
-        alert("Não há viagens cadastradas para esse período.");
-        return;
-      }
-
       const rotuloFrota =
         frotaRelatorio === FROTA_TERCEIRIZADA
           ? "Terceirizada"
@@ -215,7 +200,23 @@ function Frota() {
           ? "BagacoDeCana"
           : "CM";
       const nomeArquivo = `Fechamento_${rotuloFrota}_${periodo.inicio}_a_${periodo.fim}.xlsx`;
-      XLSX.writeFile(wb, nomeArquivo);
+
+      const gerou = await gerarEBaixarPlanilha({
+        ExcelJS,
+        nomeArquivo,
+        periodoLabel: `${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}`,
+        transportadora,
+        unidade,
+        taxa,
+        viagens: viagensDaFrota,
+        comFiscal: frotaRelatorio !== FROTA_BAGACO,
+        comAbasPorCaminhao: true,
+      });
+
+      if (!gerou) {
+        alert("Não há viagens cadastradas para esse período.");
+        return;
+      }
 
       setMostrarRelatorio(false);
     } catch (e) {
