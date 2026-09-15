@@ -271,6 +271,7 @@ function Caminhao() {
     volFiscal: "",
     volEntregue: "",
     dataEntrega: "",
+    taxa: "",
   });
 
   // =========================
@@ -766,7 +767,7 @@ function Caminhao() {
     try {
       const atualizada = await adicionarViagemApi(semanaAberta, {
         ...novaViagem,
-        taxa: taxaCaminhao,
+        taxa: converterNumero(novaViagem.taxa) || taxaCaminhao,
       });
 
       setSemanas((atuais) =>
@@ -784,6 +785,7 @@ function Caminhao() {
         volFiscal: "",
         volEntregue: "",
         dataEntrega: "",
+        taxa: "",
       });
 
       setMostrarNovaViagem(false);
@@ -1689,9 +1691,13 @@ function Caminhao() {
 
                   <button
                     style={estiloBotaoDourado}
-                    onClick={() =>
-                      setMostrarNovaViagem(true)
-                    }
+                    onClick={() => {
+                      setNovaViagem((atual) => ({
+                        ...atual,
+                        taxa: atual.taxa || taxaCaminhao,
+                      }));
+                      setMostrarNovaViagem(true);
+                    }}
                   >
                     + Nova Viagem
                   </button>
@@ -1795,6 +1801,19 @@ function Caminhao() {
                           })
                         }
                       />
+
+                      <Campo
+                        titulo={`Valor por ${unidade.rotulo} (R$)`}
+                        type="number"
+                        step="0.01"
+                        value={novaViagem.taxa}
+                        onChange={(e) =>
+                          setNovaViagem({
+                            ...novaViagem,
+                            taxa: e.target.value,
+                          })
+                        }
+                      />
                     </div>
 
                     {!ehBagaco && (
@@ -1808,6 +1827,16 @@ function Caminhao() {
                         </strong>
                       </div>
                     )}
+
+                    <div style={estiloPreviaDiferenca}>
+                      Valor desta viagem:{" "}
+                      <strong>
+                        {formatarMoeda(
+                          (converterNumero(novaViagem.volEntregue) || 0) *
+                            (converterNumero(novaViagem.taxa) || taxaCaminhao)
+                        )}
+                      </strong>
+                    </div>
 
                     <div style={estiloAcoesFormulario}>
                       <button
@@ -1864,6 +1893,9 @@ function Caminhao() {
                             </th>
                           )}
                           <th style={estiloTh}>
+                            Valor/Unid.
+                          </th>
+                          <th style={estiloTh}>
                             Entrega
                           </th>
                         </tr>
@@ -1909,6 +1941,15 @@ function Caminhao() {
                                   )}
                                 </td>
                               )}
+
+                              <td style={estiloTd}>
+                                {formatarMoeda(
+                                  taxaEfetivaViagem(
+                                    viagem,
+                                    caminhao.frota
+                                  )
+                                )}
+                              </td>
 
                               <td style={estiloTd}>
                                 {formatarData(

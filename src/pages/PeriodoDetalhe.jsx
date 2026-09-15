@@ -330,12 +330,13 @@ function PeriodoDetalhe() {
             </div>
 
             <p style={estiloAviso}>
-              ℹ️ Transportadora ainda não é cadastrada por viagem. O Frete
-              usa a taxa que estava em vigor quando a viagem foi lançada —
-              viagens antigas não mudam de valor quando o preço é
-              reajustado (hoje: {formatarMoeda(VALOR_POR_VOLUME)}/m³ para
-              C&M e Terceirizada, {formatarMoeda(VALOR_POR_TONELADA_BAGACO)}
-              /ton para Bagaço de Cana).
+              ℹ️ Transportadora ainda não é cadastrada por viagem. O Frete é
+              o valor digitado em cada viagem (campo "Valor por
+              Volume/Tonelada" na Nova Viagem); quando não é preenchido, usa
+              a taxa padrão da frota (hoje: {formatarMoeda(VALOR_POR_VOLUME)}
+              /m³ para C&M e Terceirizada,{" "}
+              {formatarMoeda(VALOR_POR_TONELADA_BAGACO)}/ton para Bagaço de
+              Cana).
             </p>
           </>
         )}
