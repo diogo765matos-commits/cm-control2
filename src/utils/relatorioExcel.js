@@ -43,55 +43,103 @@ export async function gerarEBaixarPlanilha({
   comFiscal,
   comAbasPorCaminhao = false,
 }) {
-  if (!viagens || viagens.length === 0) return false;
+  return construirEBaixarWorkbook({
+    ExcelJS,
+    nomeArquivo,
+    blocos: [
+      {
+        nomeAba: "Fechamento",
+        transportadora,
+        periodoLabel,
+        unidade,
+        taxa,
+        viagens,
+        comFiscal,
+        comAbasPorCaminhao,
+      },
+    ],
+  });
+}
 
+// Igual à função acima, mas monta um único workbook a partir de vários
+// "blocos" (um por frota, por exemplo) — usado pelo relatório geral que
+// junta todos os caminhões, de todas as frotas, num arquivo só. Cada bloco
+// pode ter seu próprio formato (comFiscal), unidade e taxa, já que a Frota
+// Bagaço de Cana usa um layout de colunas diferente de C&M/Terceirizada.
+export async function gerarEBaixarPlanilhaGeral({ ExcelJS, nomeArquivo, blocos }) {
+  return construirEBaixarWorkbook({ ExcelJS, nomeArquivo, blocos });
+}
+
+async function construirEBaixarWorkbook({ ExcelJS, nomeArquivo, blocos }) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "CM Control";
   wb.created = new Date();
 
-  const construirAba = comFiscal ? construirAbaCompleta : construirAbaSimplificada;
+  const nomesUsados = new Set();
+  let teveAlgumDado = false;
 
-  const abaGeral = wb.addWorksheet("Fechamento");
-  const teveDadosGeral = construirAba(abaGeral, {
-    transportadora,
-    periodoLabel,
-    unidade,
-    taxa,
-    viagens,
-  });
+  blocos.forEach(
+    ({
+      nomeAba,
+      transportadora,
+      periodoLabel,
+      unidade,
+      taxa,
+      viagens,
+      comFiscal,
+      comAbasPorCaminhao = false,
+    }) => {
+      if (!viagens || viagens.length === 0) return;
 
-  if (!teveDadosGeral) return false;
+      const construirAba = comFiscal ? construirAbaCompleta : construirAbaSimplificada;
 
-  if (comAbasPorCaminhao) {
-    const porPlaca = new Map();
-
-    viagens.forEach((viagem) => {
-      const chave = viagem.placa || "Sem placa";
-
-      if (!porPlaca.has(chave)) {
-        porPlaca.set(chave, []);
-      }
-
-      porPlaca.get(chave).push(viagem);
-    });
-
-    const nomesUsados = new Set(["fechamento"]);
-
-    Array.from(porPlaca.keys())
-      .sort()
-      .forEach((placa) => {
-        const nomeAba = nomeAbaUnico(placa, nomesUsados);
-        const aba = wb.addWorksheet(nomeAba);
-
-        construirAba(aba, {
-          transportadora,
-          periodoLabel: `${periodoLabel}  ·  Placa ${placa}`,
-          unidade,
-          taxa,
-          viagens: porPlaca.get(placa),
-        });
+      const nomeAbaGeral = nomeAbaUnico(nomeAba, nomesUsados);
+      const abaGeral = wb.addWorksheet(nomeAbaGeral);
+      const teveDadosGeral = construirAba(abaGeral, {
+        transportadora,
+        periodoLabel,
+        unidade,
+        taxa,
+        viagens,
       });
-  }
+
+      if (!teveDadosGeral) return;
+
+      teveAlgumDado = true;
+
+      if (comAbasPorCaminhao) {
+        const porPlaca = new Map();
+
+        viagens.forEach((viagem) => {
+          const chave = viagem.placa || "Sem placa";
+
+          if (!porPlaca.has(chave)) {
+            porPlaca.set(chave, []);
+          }
+
+          porPlaca.get(chave).push(viagem);
+        });
+
+        Array.from(porPlaca.keys())
+          .sort()
+          .forEach((placa) => {
+            const viagensDoCaminhao = porPlaca.get(placa);
+            const nomeAbaCaminhao = nomeAbaUnico(placa, nomesUsados);
+            const aba = wb.addWorksheet(nomeAbaCaminhao);
+
+            construirAba(aba, {
+              transportadora: viagensDoCaminhao[0]?.transportadora || transportadora,
+              periodoLabel: `${periodoLabel}  ·  Placa ${placa}`,
+              unidade,
+              taxa,
+              viagens: viagensDoCaminhao,
+            });
+          });
+      }
+    }
+  );
+
+  if (!teveAlgumDado) return false;
 
   const buffer = await wb.xlsx.writeBuffer();
   baixarArquivo(buffer, nomeArquivo);
@@ -278,18 +326,21 @@ function construirAbaCompleta(ws, { transportadora, periodoLabel, unidade, taxa,
     const volFiscal = converterNumero(viagem.volFiscal) || 0;
     const volEntregue = converterNumero(viagem.volEntregue) || 0;
     const diferenca = Number((volEntregue - volFiscal).toFixed(2));
+    const taxaLinha = converterNumero(viagem.taxa) || taxa;
 
     return {
       data: viagem.data,
       placa: viagem.placa || "",
       nf: viagem.nf || "",
       cte: viagem.cte || "",
+      transportadora: viagem.transportadora || transportadora,
+      taxa: taxaLinha,
       volFiscal,
       volEntregue,
       diferenca,
-      valorFiscal: volFiscal * taxa,
-      complemento: diferenca * taxa,
-      valorFisico: volEntregue * taxa,
+      valorFiscal: volFiscal * taxaLinha,
+      complemento: diferenca * taxaLinha,
+      valorFisico: volEntregue * taxaLinha,
       dataEntrega: viagem.dataEntrega,
     };
   });
@@ -368,8 +419,8 @@ function construirAbaCompleta(ws, { transportadora, periodoLabel, unidade, taxa,
     l.volEntregue,
     l.diferenca,
     l.cte,
-    transportadora,
-    taxa,
+    l.transportadora,
+    l.taxa,
     l.valorFiscal,
     l.complemento,
     l.valorFisico,
@@ -430,13 +481,14 @@ function construirAbaCompleta(ws, { transportadora, periodoLabel, unidade, taxa,
 function construirAbaSimplificada(ws, { transportadora, periodoLabel, unidade, taxa, viagens }) {
   const linhasCalc = viagens.map((viagem) => {
     const volEntregue = converterNumero(viagem.volEntregue) || 0;
+    const taxaLinha = converterNumero(viagem.taxa) || taxa;
 
     return {
       data: viagem.data,
       placa: viagem.placa || "",
       nf: viagem.nf || "",
       volEntregue,
-      valor: volEntregue * taxa,
+      valor: volEntregue * taxaLinha,
       dataEntrega: viagem.dataEntrega,
     };
   });

@@ -11,7 +11,7 @@ import {
   VALOR_POR_VOLUME,
   VALOR_POR_TONELADA_BAGACO,
 } from "../data/config";
-import { taxaDaFrota } from "../data/caminhoes";
+import { taxaEfetivaViagem } from "../data/caminhoes";
 import {
   converterNumero,
   formatarData,
@@ -72,12 +72,12 @@ function PeriodoDetalhe() {
           const rotulo = caminhao
             ? `${caminhao.modelo} (${caminhao.placa})`
             : "Caminhão removido";
-          const taxa = taxaDaFrota(caminhao?.frota);
 
           (semana.viagens || []).forEach((viagem) => {
             const volFiscal = converterNumero(viagem.volFiscal) || 0;
             const volEntregue = converterNumero(viagem.volEntregue) || 0;
             const diferenca = volEntregue - volFiscal;
+            const taxa = taxaEfetivaViagem(viagem, caminhao?.frota);
 
             linhas.push({
               id: viagem.id,
@@ -330,11 +330,12 @@ function PeriodoDetalhe() {
             </div>
 
             <p style={estiloAviso}>
-              ℹ️ Transportadora e Frete ainda não são cadastrados por viagem —
-              aqui é usada a taxa padrão da frota de cada caminhão (
-              {formatarMoeda(VALOR_POR_VOLUME)}/m³ para C&M e Terceirizada,{" "}
-              {formatarMoeda(VALOR_POR_TONELADA_BAGACO)}/ton para Bagaço de
-              Cana).
+              ℹ️ Transportadora ainda não é cadastrada por viagem. O Frete
+              usa a taxa que estava em vigor quando a viagem foi lançada —
+              viagens antigas não mudam de valor quando o preço é
+              reajustado (hoje: {formatarMoeda(VALOR_POR_VOLUME)}/m³ para
+              C&M e Terceirizada, {formatarMoeda(VALOR_POR_TONELADA_BAGACO)}
+              /ton para Bagaço de Cana).
             </p>
           </>
         )}

@@ -3,20 +3,24 @@
 // cada período. Usado no Painel (todos os caminhões) e na página de um
 // caminhão específico (só as semanas dele).
 
-import { VALOR_POR_VOLUME, PERCENTUAL_MOTORISTA } from "../data/config";
+import { PERCENTUAL_MOTORISTA } from "../data/config";
+import { taxaEfetivaViagem } from "../data/caminhoes";
 import { converterNumero } from "./formatadores";
 
 // A taxa por unidade entregue varia por frota (ex: Bagaço de Cana usa
-// tonelada a R$290, as demais usam volume a VALOR_POR_VOLUME). Quem chama
-// esta função pode informar `taxaPorCaminhao` (Map caminhao_id -> taxa)
+// tonelada a R$290, as demais usam volume a VALOR_POR_VOLUME) — e cada
+// viagem usa a taxa que estava em vigor quando ela foi lançada (ver
+// taxaEfetivaViagem em data/caminhoes.js), não a taxa atual, pra viagens
+// antigas não mudarem de valor quando o preço é reajustado. Quem chama
+// esta função pode informar `frotaPorCaminhao` (Map caminhao_id -> frota)
 // quando está somando semanas de vários caminhões/frotas ao mesmo tempo,
-// ou `taxaPadrao` quando já sabe a taxa (ex: uma única frota/caminhão).
-function taxaDaSemana(semana, taxaPorCaminhao, taxaPadrao) {
-  if (taxaPorCaminhao && taxaPorCaminhao.has(semana.caminhao_id)) {
-    return taxaPorCaminhao.get(semana.caminhao_id);
+// ou `frotaPadrao` quando já sabe a frota (ex: um único caminhão).
+function frotaDaSemana(semana, frotaPorCaminhao, frotaPadrao) {
+  if (frotaPorCaminhao && frotaPorCaminhao.has(semana.caminhao_id)) {
+    return frotaPorCaminhao.get(semana.caminhao_id);
   }
 
-  return taxaPadrao ?? VALOR_POR_VOLUME;
+  return frotaPadrao;
 }
 
 export function chavePeriodo(inicio, fim) {
@@ -33,7 +37,7 @@ export function calcularResumoPorPeriodo(
   semanasViagens,
   semanasAbastecimento,
   semanasDespesas,
-  { inicioFiltro, fimFiltro, taxaPorCaminhao, taxaPadrao } = {}
+  { inicioFiltro, fimFiltro, frotaPorCaminhao, frotaPadrao } = {}
 ) {
   const periodos = new Map();
 
@@ -61,10 +65,11 @@ export function calcularResumoPorPeriodo(
       const periodo = pegarPeriodo(semana.inicio, semana.fim);
       periodo.totalViagens += semana.viagens.length;
 
-      const taxa = taxaDaSemana(semana, taxaPorCaminhao, taxaPadrao);
+      const frota = frotaDaSemana(semana, frotaPorCaminhao, frotaPadrao);
 
       semana.viagens.forEach((viagem) => {
         const volEntregue = converterNumero(viagem.volEntregue) || 0;
+        const taxa = taxaEfetivaViagem(viagem, frota);
         periodo.volumeEntregue += volEntregue;
         periodo.receitaBruta += volEntregue * taxa;
       });

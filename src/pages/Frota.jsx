@@ -5,9 +5,11 @@ import {
   criarCaminhao,
   excluirCaminhao,
   FROTAS,
+  FROTA_CM,
   FROTA_TERCEIRIZADA,
   FROTA_BAGACO,
   taxaDaFrota,
+  taxaEfetivaViagem,
   unidadeDaFrota,
 } from "../data/caminhoes";
 import { db } from "../lib/supabase";
@@ -16,7 +18,10 @@ import {
   TRANSPORTADORA_TERCEIRIZADA,
 } from "../data/config";
 import { formatarData } from "../utils/formatadores";
-import { gerarEBaixarPlanilha } from "../utils/relatorioExcel";
+import {
+  gerarEBaixarPlanilha,
+  gerarEBaixarPlanilhaGeral,
+} from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 
 function Frota() {
@@ -102,11 +107,14 @@ function Frota() {
         db.select("viagens_semanas", "select=inicio,fim,caminhao_id"),
       ]);
 
-      const idsDaFrota = new Set(
-        caminhoesTodos
-          .filter((c) => c.frota === tipoFrota)
-          .map((c) => c.id)
-      );
+      const idsDaFrota =
+        tipoFrota === "todas"
+          ? new Set(caminhoesTodos.map((c) => c.id))
+          : new Set(
+              caminhoesTodos
+                .filter((c) => c.frota === tipoFrota)
+                .map((c) => c.id)
+            );
 
       const semanasDaFrota = semanas.filter((semana) =>
         idsDaFrota.has(semana.caminhao_id)
@@ -162,6 +170,87 @@ function Frota() {
     setGerandoRelatorio(true);
 
     try {
+      const periodoLabel = `${formatarData(inicioRelatorio)} a ${formatarData(fimRelatorio)}`;
+
+      if (frotaRelatorio === "todas") {
+        const caminhoesTodos = await db.select(
+          "caminhoes",
+          "select=id,frota,placa"
+        );
+
+        const semanas = await db.select(
+          "viagens_semanas",
+          `select=viagens,caminhao_id&inicio=gte.${inicioRelatorio}&inicio=lte.${fimRelatorio}`
+        );
+
+        const infoPorId = new Map(caminhoesTodos.map((c) => [c.id, c]));
+
+        const viagensCompletas = [];
+        const viagensBagaco = [];
+
+        semanas.forEach((semana) => {
+          const caminhao = infoPorId.get(semana.caminhao_id);
+          if (!caminhao) return;
+
+          const transportadora =
+            caminhao.frota === FROTA_TERCEIRIZADA
+              ? TRANSPORTADORA_TERCEIRIZADA
+              : TRANSPORTADORA_CM;
+
+          (semana.viagens || []).forEach((viagem) => {
+            const viagemComDados = {
+              ...viagem,
+              placa: caminhao.placa,
+              transportadora,
+              taxa: taxaEfetivaViagem(viagem, caminhao.frota),
+            };
+
+            if (caminhao.frota === FROTA_BAGACO) {
+              viagensBagaco.push(viagemComDados);
+            } else {
+              viagensCompletas.push(viagemComDados);
+            }
+          });
+        });
+
+        const nomeArquivo = `Fechamento_TodasFrotas_${inicioRelatorio}_a_${fimRelatorio}.xlsx`;
+
+        const gerou = await gerarEBaixarPlanilhaGeral({
+          ExcelJS,
+          nomeArquivo,
+          blocos: [
+            {
+              nomeAba: "Geral",
+              transportadora: "C&M + Terceirizada",
+              periodoLabel,
+              unidade: unidadeDaFrota(FROTA_CM),
+              taxa: taxaDaFrota(FROTA_CM),
+              viagens: viagensCompletas,
+              comFiscal: true,
+              comAbasPorCaminhao: true,
+            },
+            {
+              nomeAba: "Geral Bagaço",
+              transportadora: TRANSPORTADORA_CM,
+              periodoLabel,
+              unidade: unidadeDaFrota(FROTA_BAGACO),
+              taxa: taxaDaFrota(FROTA_BAGACO),
+              viagens: viagensBagaco,
+              comFiscal: false,
+              comAbasPorCaminhao: true,
+            },
+          ],
+        });
+
+        if (!gerou) {
+          alert("Não há viagens cadastradas para esse período.");
+          return;
+        }
+
+        setMostrarRelatorio(false);
+        return;
+      }
+
       const transportadora =
         frotaRelatorio === FROTA_TERCEIRIZADA
           ? TRANSPORTADORA_TERCEIRIZADA
@@ -196,7 +285,11 @@ function Frota() {
           const placa = placaPorId.get(semana.caminhao_id) || "";
 
           (semana.viagens || []).forEach((viagem) => {
-            viagensDaFrota.push({ ...viagem, placa });
+            viagensDaFrota.push({
+              ...viagem,
+              placa,
+              taxa: taxaEfetivaViagem(viagem, frotaRelatorio),
+            });
           });
         });
 
@@ -250,6 +343,15 @@ function Frota() {
         subtitulo={`${caminhoes.length} caminhão(ões) cadastrado(s) ao todo.`}
       />
 
+      <div style={estiloAcoesGeral}>
+        <button
+          style={estiloBotaoRelatorioGeral}
+          onClick={() => abrirRelatorio("todas")}
+        >
+          📊 Relatório Geral (Todas as Frotas)
+        </button>
+      </div>
+
       {mostrarRelatorio && (
         <div
           style={estiloModalFundo}
@@ -258,12 +360,15 @@ function Frota() {
           <div style={estiloModalCaixa} onClick={(e) => e.stopPropagation()}>
             <h3>
               Gerar Relatório —{" "}
-              {FROTAS.find((f) => f.tipo === frotaRelatorio)?.titulo}
+              {frotaRelatorio === "todas"
+                ? "Todas as Frotas"
+                : FROTAS.find((f) => f.tipo === frotaRelatorio)?.titulo}
             </h3>
 
             <p style={estiloLegenda}>
-              Junta as viagens dos caminhões dessa frota no período escolhido
-              num arquivo Excel, igual ao que você já manda pra empresa.
+              {frotaRelatorio === "todas"
+                ? "Junta as viagens de todos os caminhões, de todas as frotas, no período escolhido, num único arquivo Excel com abas separadas por grupo e por caminhão."
+                : "Junta as viagens dos caminhões dessa frota no período escolhido num arquivo Excel, igual ao que você já manda pra empresa."}
             </p>
 
             {carregandoPeriodos ? (
@@ -749,6 +854,23 @@ const estiloBotaoAtalho = {
   cursor: "pointer",
   fontSize: "12px",
   fontWeight: "600",
+};
+
+const estiloAcoesGeral = {
+  display: "flex",
+  justifyContent: "flex-end",
+  marginBottom: "18px",
+};
+
+const estiloBotaoRelatorioGeral = {
+  background: "var(--cor-sidebar)",
+  color: "white",
+  border: "none",
+  padding: "12px 20px",
+  borderRadius: "var(--raio-pequeno)",
+  cursor: "pointer",
+  fontWeight: "bold",
+  whiteSpace: "nowrap",
 };
 
 export default Frota;

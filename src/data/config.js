@@ -1,6 +1,7 @@
 // Regras financeiras do negócio — mude aqui se os valores combinados mudarem.
 
 export const VALOR_POR_VOLUME = 36.0; // R$ pagos pela empresa contratante por volume entregue
+export const VALOR_POR_VOLUME_ANTIGO = 34.8; // taxa em vigor antes do reajuste (14/09/2026) — usada só como padrão de viagens antigas que foram salvas sem uma taxa própria, pra elas não serem recalculadas com o valor novo
 export const VALOR_POR_TONELADA_BAGACO = 290; // R$ pagos por tonelada entregue (Frota Bagaço de Cana)
 export const PERCENTUAL_MOTORISTA = 0.1; // fatia do motorista sobre o valor bruto (10%)
 

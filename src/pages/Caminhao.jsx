@@ -7,6 +7,7 @@ import {
   FROTA_TERCEIRIZADA,
   FROTA_BAGACO,
   taxaDaFrota,
+  taxaEfetivaViagem,
   unidadeDaFrota,
 } from "../data/caminhoes";
 import {
@@ -461,7 +462,7 @@ function Caminhao() {
     semanas,
     semanasAbastecimento,
     semanasDespesas,
-    { inicioFiltro: filtroInicio, fimFiltro: filtroFim, taxaPadrao: taxaCaminhao }
+    { inicioFiltro: filtroInicio, fimFiltro: filtroFim, frotaPadrao: caminhao.frota }
   );
 
   const totalCaminhao = somarPeriodos(periodosCaminhao);
@@ -653,7 +654,11 @@ function Caminhao() {
       const viagensDoPeriodo = [];
       semanasNoPeriodo.forEach((semana) => {
         (semana.viagens || []).forEach((viagem) => {
-          viagensDoPeriodo.push({ ...viagem, placa: caminhao.placa });
+          viagensDoPeriodo.push({
+            ...viagem,
+            placa: caminhao.placa,
+            taxa: taxaEfetivaViagem(viagem, caminhao.frota),
+          });
         });
       });
 
@@ -759,7 +764,10 @@ function Caminhao() {
     }
 
     try {
-      const atualizada = await adicionarViagemApi(semanaAberta, novaViagem);
+      const atualizada = await adicionarViagemApi(semanaAberta, {
+        ...novaViagem,
+        taxa: taxaCaminhao,
+      });
 
       setSemanas((atuais) =>
         atuais.map((semana) =>
@@ -2993,8 +3001,22 @@ function Caminhao() {
     0
   );
 
-  const receitaBruta =
-    volumeTotalEntregue * taxaCaminhao;
+  // Cada viagem usa a taxa que estava em vigor quando foi lançada (salva
+  // nela mesma) — viagens antigas não mudam de valor quando o preço é
+  // reajustado. Por isso a receita é somada viagem a viagem, e não
+  // volume total x taxa atual.
+  const receitaBruta = semanas.reduce(
+    (total, semana) =>
+      total +
+      semana.viagens.reduce(
+        (soma, viagem) =>
+          soma +
+          (converterNumero(viagem.volEntregue) || 0) *
+            taxaEfetivaViagem(viagem, caminhao.frota),
+        0
+      ),
+    0
+  );
 
   const pagamentoMotorista =
     receitaBruta * PERCENTUAL_MOTORISTA;
@@ -3027,7 +3049,7 @@ function Caminhao() {
         {!ehTerceirizada && (
           <>
             <CardResumo
-              titulo={`Valor por ${unidade.rotulo}`}
+              titulo={`Valor por ${unidade.rotulo} (Atual)`}
               valor={formatarMoeda(taxaCaminhao)}
             />
 
@@ -3084,8 +3106,13 @@ function Caminhao() {
                     0
                   );
 
-                  const valorBrutoSemana =
-                    volumeSemana * taxaCaminhao;
+                  const valorBrutoSemana = semana.viagens.reduce(
+                    (total, viagem) =>
+                      total +
+                      (converterNumero(viagem.volEntregue) || 0) *
+                        taxaEfetivaViagem(viagem, caminhao.frota),
+                    0
+                  );
 
                   const motoristaSemana =
                     valorBrutoSemana * PERCENTUAL_MOTORISTA;

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../lib/supabase";
-import { taxaDaFrota } from "../data/caminhoes";
 import { formatarData, formatarMoeda, formatarNumero } from "../utils/formatadores";
 import {
   calcularResumoPorPeriodo,
@@ -22,7 +21,7 @@ function Dashboard() {
   const [semanasViagens, setSemanasViagens] = useState([]);
   const [semanasAbastecimento, setSemanasAbastecimento] = useState([]);
   const [semanasDespesas, setSemanasDespesas] = useState([]);
-  const [taxaPorCaminhao, setTaxaPorCaminhao] = useState(new Map());
+  const [frotaPorCaminhao, setFrotaPorCaminhao] = useState(new Map());
 
   const [filtroInicio, setFiltroInicio] = useState("");
   const [filtroFim, setFiltroFim] = useState("");
@@ -54,9 +53,7 @@ function Dashboard() {
         setSemanasViagens(viagens);
         setSemanasAbastecimento(abastecimentos);
         setSemanasDespesas(despesas);
-        setTaxaPorCaminhao(
-          new Map(caminhoes.map((c) => [c.id, taxaDaFrota(c.frota)]))
-        );
+        setFrotaPorCaminhao(new Map(caminhoes.map((c) => [c.id, c.frota])));
         setErro("");
       } catch (e) {
         if (ativo) setErro(e.message);
@@ -86,7 +83,7 @@ function Dashboard() {
     semanasViagens,
     semanasAbastecimento,
     semanasDespesas,
-    { inicioFiltro: filtroInicio, fimFiltro: filtroFim, taxaPorCaminhao }
+    { inicioFiltro: filtroInicio, fimFiltro: filtroFim, frotaPorCaminhao }
   );
 
   const totalGeral = somarPeriodos(periodos);
