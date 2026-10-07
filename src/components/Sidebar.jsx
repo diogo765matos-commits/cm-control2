@@ -6,6 +6,7 @@ const ITENS_MENU = [
   { to: "/", rotulo: "Painel", icone: "🏠" },
   { to: "/frota", rotulo: "Frota", icone: "🚛" },
   { to: "/despesas-extras", rotulo: "Despesas Extras", icone: "🧾" },
+  { to: "/consulta-periodo", rotulo: "Consulta por Período", icone: "📅" },
 ];
 
 function Sidebar({ onSair, email, aberto, onFechar }) {
