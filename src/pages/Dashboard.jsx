@@ -1,28 +1,153 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { db } from "../lib/supabase";
-import { formatarData, formatarMoeda, formatarNumero } from "../utils/formatadores";
+import {
+  FROTA_BAGACO,
+  FROTA_CM,
+  FROTA_TERCEIRIZADA,
+} from "../data/caminhoes";
 import {
   calcularResumoPorPeriodo,
-  chavePeriodo,
   somarPeriodos,
 } from "../utils/resumoPeriodos";
+import {
+  formatarData,
+  formatarMoeda,
+  formatarNumero,
+} from "../utils/formatadores";
 import PageHeader from "../components/PageHeader";
 import DateRangeFilter from "../components/DateRangeFilter";
-import KpiCard, { CORES_KPI } from "../components/KpiCard";
+import "../styles/dashboard.css";
+
+const FROTAS_DASHBOARD = [
+  { id: FROTA_CM, nome: "C&M", classe: "cm" },
+  { id: FROTA_TERCEIRIZADA, nome: "Terceirizada", classe: "terceirizada" },
+  { id: FROTA_BAGACO, nome: "Bagaço de Cana", classe: "bagaco" },
+];
+
+function rotuloPeriodo(inicio, fim) {
+  if (inicio && fim) {
+    return `${formatarData(inicio)} a ${formatarData(fim)}`;
+  }
+
+  if (inicio) return `A partir de ${formatarData(inicio)}`;
+  if (fim) return `Até ${formatarData(fim)}`;
+  return "Todos os períodos";
+}
+
+function IconeIndicador({ tipo }) {
+  const formas = {
+    volume: (
+      <>
+        <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
+        <path d="m4.5 7.8 7.5 4.3 7.5-4.3M12 12.2V21" />
+      </>
+    ),
+    bruto: (
+      <>
+        <path d="M12 2.8v18.4M16.5 6.5c-.8-1-2.2-1.5-4.2-1.5-2.5 0-4.1 1.2-4.1 3s1.5 2.7 4.2 3.2c2.7.5 4.2 1.4 4.2 3.2s-1.6 3-4.2 3c-2 0-3.6-.6-4.5-1.8" />
+      </>
+    ),
+    viagens: (
+      <>
+        <path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z" />
+        <circle cx="7.5" cy="18" r="2" />
+        <circle cx="18" cy="18" r="2" />
+      </>
+    ),
+    motoristas: (
+      <>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 10h18M7 15h4" />
+      </>
+    ),
+  };
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {formas[tipo]}
+    </svg>
+  );
+}
+
+function Indicador({ tipo, titulo, valor, detalhe }) {
+  return (
+    <article className={`dashboard-kpi dashboard-kpi-${tipo}`}>
+      <div className="dashboard-kpi-cabecalho">
+        <span className="dashboard-kpi-icone">
+          <IconeIndicador tipo={tipo} />
+        </span>
+        <span className="dashboard-kpi-titulo">{titulo}</span>
+      </div>
+      <strong className="dashboard-kpi-valor">{valor}</strong>
+      <span className="dashboard-kpi-detalhe">{detalhe}</span>
+    </article>
+  );
+}
+
+function BarraFrota({ frota, valor, maximo, formatarValor }) {
+  const largura =
+    maximo > 0 && valor > 0 ? Math.max(2, (valor / maximo) * 100) : 0;
+
+  return (
+    <div className="dashboard-barra-linha">
+      <span className={`dashboard-frota-nome frota-${frota.classe}`}>
+        <span className="dashboard-frota-marcador" aria-hidden="true" />
+        {frota.nome}
+      </span>
+      <div
+        className="dashboard-barra-trilho"
+        role="img"
+        aria-label={`${frota.nome}: ${formatarValor(valor)}`}
+      >
+        <span
+          className={`dashboard-barra-preenchimento frota-${frota.classe}`}
+          style={{ width: `${largura}%` }}
+        />
+      </div>
+      <strong className="dashboard-barra-valor">{formatarValor(valor)}</strong>
+    </div>
+  );
+}
+
+function MedidaProducao({ titulo, unidade, valores, formatarValor }) {
+  const maximo = Math.max(0, ...valores.map((item) => item.valor));
+
+  return (
+    <section className="dashboard-medida">
+      <div className="dashboard-medida-cabecalho">
+        <h3>{titulo}</h3>
+        {unidade && <span className="dashboard-unidade">{unidade}</span>}
+      </div>
+      <div className="dashboard-barras">
+        {valores.map((item) => (
+          <BarraFrota
+            key={item.frota.id}
+            frota={item.frota}
+            valor={item.valor}
+            maximo={maximo}
+            formatarValor={formatarValor}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function Dashboard() {
-  const navigate = useNavigate();
-
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
-
-  const [totalCaminhoes, setTotalCaminhoes] = useState(0);
   const [semanasViagens, setSemanasViagens] = useState([]);
   const [semanasAbastecimento, setSemanasAbastecimento] = useState([]);
   const [semanasDespesas, setSemanasDespesas] = useState([]);
   const [frotaPorCaminhao, setFrotaPorCaminhao] = useState(new Map());
-
   const [filtroInicio, setFiltroInicio] = useState("");
   const [filtroFim, setFiltroFim] = useState("");
 
@@ -49,7 +174,6 @@ function Dashboard() {
 
         if (!ativo) return;
 
-        setTotalCaminhoes(caminhoes.length);
         setSemanasViagens(viagens);
         setSemanasAbastecimento(abastecimentos);
         setSemanasDespesas(despesas);
@@ -79,264 +203,159 @@ function Dashboard() {
     );
   }
 
+  const opcoesResumo = {
+    inicioFiltro: filtroInicio,
+    fimFiltro: filtroFim,
+    frotaPorCaminhao,
+  };
   const periodos = calcularResumoPorPeriodo(
     semanasViagens,
     semanasAbastecimento,
     semanasDespesas,
-    { inicioFiltro: filtroInicio, fimFiltro: filtroFim, frotaPorCaminhao }
+    opcoesResumo
   );
-
   const totalGeral = somarPeriodos(periodos);
 
+  const resumoFrota = (frota) => {
+    const semanasDaFrota = semanasViagens.filter(
+      (semana) => frotaPorCaminhao.get(semana.caminhao_id) === frota
+    );
+
+    return somarPeriodos(
+      calcularResumoPorPeriodo(semanasDaFrota, [], [], opcoesResumo)
+    );
+  };
+  const dadosFrotas = FROTAS_DASHBOARD.map((frota) => ({
+    frota,
+    ...resumoFrota(frota.id),
+  }));
+  const dadosCm = dadosFrotas.find((item) => item.frota.id === FROTA_CM);
+  const dadosTerceirizada = dadosFrotas.find(
+    (item) => item.frota.id === FROTA_TERCEIRIZADA
+  );
+  const dadosBagaco = dadosFrotas.find(
+    (item) => item.frota.id === FROTA_BAGACO
+  );
+  const volumeM3 = dadosCm.volumeEntregue + dadosTerceirizada.volumeEntregue;
+  const volumeToneladas = dadosBagaco.volumeEntregue;
+  const periodoAtual = rotuloPeriodo(filtroInicio, filtroFim);
+
+  const valoresVolume = [dadosCm, dadosTerceirizada].map((item) => ({
+    frota: item.frota,
+    valor: item.volumeEntregue,
+  }));
+  const valoresBrutos = dadosFrotas.map((item) => ({
+    frota: item.frota,
+    valor: item.receitaBruta,
+  }));
+  const valoresViagens = dadosFrotas.map((item) => ({
+    frota: item.frota,
+    valor: item.totalViagens,
+  }));
+
   return (
-    <div>
-      <PageHeader
-        titulo="Painel"
-        subtitulo="Visão geral do desempenho da frota"
-      >
-        <DateRangeFilter
-          inicio={filtroInicio}
-          fim={filtroFim}
-          onAplicar={(inicio, fim) => {
-            setFiltroInicio(inicio);
-            setFiltroFim(fim);
-          }}
-          onLimpar={() => {
-            setFiltroInicio("");
-            setFiltroFim("");
-          }}
-        />
+    <main className="dashboard-page">
+      <PageHeader titulo="Painel" subtitulo="Produção da empresa">
+        <div className="dashboard-periodo-controles">
+          <div className="dashboard-periodo-selecionado" aria-live="polite">
+            <span>Período selecionado</span>
+            <strong>{periodoAtual}</strong>
+          </div>
+          <DateRangeFilter
+            inicio={filtroInicio}
+            fim={filtroFim}
+            onAplicar={(inicio, fim) => {
+              setFiltroInicio(inicio);
+              setFiltroFim(fim);
+            }}
+            onLimpar={() => {
+              setFiltroInicio("");
+              setFiltroFim("");
+            }}
+          />
+        </div>
       </PageHeader>
 
-      <div style={estiloGridKpis}>
-        <KpiCard
-          icone="🚚"
-          cor={CORES_KPI.verde}
-          rotulo="Viagens"
-          valor={totalGeral.totalViagens}
-          legenda="Total no período"
+      <section className="dashboard-kpis" aria-label="Indicadores do período">
+        <Indicador
+          tipo="volume"
+          titulo="Volume entregue"
+          valor={`${formatarNumero(volumeM3)} m³`}
+          detalhe={
+            volumeToneladas > 0
+              ? `${formatarNumero(volumeToneladas)} ton. na Frota de Bagaço`
+              : "Frota C&M e Terceirizada"
+          }
         />
-        <KpiCard
-          icone="💰"
-          cor={CORES_KPI.verde}
-          rotulo="Receita Bruta"
+        <Indicador
+          tipo="bruto"
+          titulo="Valor bruto produzido"
           valor={formatarMoeda(totalGeral.receitaBruta)}
-          legenda="Total no período"
+          detalhe="Total bruto do período"
         />
-        <KpiCard
-          icone="⛽"
-          cor={CORES_KPI.roxo}
-          rotulo="Combustível"
-          valor={formatarMoeda(totalGeral.totalCombustivel)}
-          legenda="Total no período"
+        <Indicador
+          tipo="viagens"
+          titulo="Viagens realizadas"
+          valor={formatarNumero(totalGeral.totalViagens, 0)}
+          detalhe="Total do período"
         />
-        <KpiCard
-          icone="🧾"
-          cor={CORES_KPI.laranja}
-          rotulo="Despesas Extras"
-          valor={formatarMoeda(totalGeral.totalDespesasExtras)}
-          legenda="Total no período"
+        <Indicador
+          tipo="motoristas"
+          titulo="Pagamento de motoristas"
+          valor={formatarMoeda(totalGeral.pagamentoMotoristas)}
+          detalhe="Conforme cálculo financeiro atual"
         />
-        <KpiCard
-          icone="📈"
-          cor={CORES_KPI.verde}
-          rotulo="Lucro da Frota"
-          valor={formatarMoeda(totalGeral.lucro)}
-          legenda="Total no período"
-        />
-      </div>
+      </section>
 
-      <div style={estiloCard}>
-        <h3 style={estiloTituloCard}>Resumo por Período (Semanal)</h3>
-
-        <p style={estiloLegendaPeriodo}>
-          {totalCaminhoes} caminhão(ões) cadastrado(s). Os períodos só se
-          somam entre caminhões quando o início e o fim batem exatamente.
-          Clique num período para ver as viagens e os gráficos daquela
-          semana.
-        </p>
-
-        {periodos.length === 0 ? (
-          <div style={estiloVazio}>
-            <h3>Nenhuma semana no período selecionado</h3>
-            <p>Ajuste o filtro ou cadastre viagens em algum caminhão.</p>
+      <section className="dashboard-producao" aria-labelledby="producao-titulo">
+        <div className="dashboard-producao-cabecalho">
+          <div>
+            <p className="dashboard-sobretitulo">Comparativo do período</p>
+            <h2 id="producao-titulo">Produção por frota</h2>
           </div>
-        ) : (
-          <div style={estiloTabelaContainer}>
-            <table style={estiloTabela}>
-              <thead>
-                <tr>
-                  <th style={estiloTh}>Período</th>
-                  <th style={estiloTh}>Viagens</th>
-                  <th style={estiloTh}>Volume Entregue</th>
-                  <th style={estiloTh}>Receita Bruta</th>
-                  <th style={estiloTh}>Combustível</th>
-                  <th style={estiloTh}>Despesas Extras</th>
-                  <th style={estiloTh}>Motoristas (10%)</th>
-                  <th style={estiloTh}>Lucro da Frota</th>
-                </tr>
-              </thead>
+          <span className="dashboard-periodo-chip">{periodoAtual}</span>
+        </div>
 
-              <tbody>
-                {periodos.map((periodo) => (
-                  <tr
-                    key={chavePeriodo(periodo.inicio, periodo.fim)}
-                    onClick={() =>
-                      navigate(`/periodo/${periodo.inicio}/${periodo.fim}`)
-                    }
-                    style={estiloLinhaClicavel}
-                  >
-                    <td style={estiloTd}>
-                      {formatarData(periodo.inicio)} até{" "}
-                      {formatarData(periodo.fim)}{" "}
-                      <span style={estiloSetaPeriodo}>→</span>
-                    </td>
-                    <td style={estiloTd}>{periodo.totalViagens}</td>
-                    <td style={estiloTd}>
-                      {formatarNumero(periodo.volumeEntregue)}
-                    </td>
-                    <td style={estiloTd}>
-                      {formatarMoeda(periodo.receitaBruta)}
-                    </td>
-                    <td style={estiloTd}>
-                      {formatarMoeda(periodo.totalCombustivel)}
-                    </td>
-                    <td style={estiloTd}>
-                      {formatarMoeda(periodo.totalDespesasExtras)}
-                    </td>
-                    <td style={estiloTd}>
-                      {formatarMoeda(periodo.pagamentoMotoristas)}
-                    </td>
-                    <td
-                      style={{
-                        ...estiloTd,
-                        fontWeight: "bold",
-                        color: periodo.lucro < 0 ? "#dc2626" : "#111827",
-                      }}
-                    >
-                      {formatarMoeda(periodo.lucro)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+        <div className="dashboard-legenda-frotas" aria-label="Frotas">
+          {FROTAS_DASHBOARD.map((frota) => (
+            <span key={frota.id} className={`frota-${frota.classe}`}>
+              <span className="dashboard-frota-marcador" aria-hidden="true" />
+              {frota.nome}
+            </span>
+          ))}
+        </div>
 
-              <tfoot>
-                <tr>
-                  <td style={estiloTdTotal}>Total Geral</td>
-                  <td style={estiloTdTotal}>{totalGeral.totalViagens}</td>
-                  <td style={estiloTdTotal}>
-                    {formatarNumero(totalGeral.volumeEntregue)}
-                  </td>
-                  <td style={estiloTdTotal}>
-                    {formatarMoeda(totalGeral.receitaBruta)}
-                  </td>
-                  <td style={estiloTdTotal}>
-                    {formatarMoeda(totalGeral.totalCombustivel)}
-                  </td>
-                  <td style={estiloTdTotal}>
-                    {formatarMoeda(totalGeral.totalDespesasExtras)}
-                  </td>
-                  <td style={estiloTdTotal}>
-                    {formatarMoeda(totalGeral.pagamentoMotoristas)}
-                  </td>
-                  <td
-                    style={{
-                      ...estiloTdTotal,
-                      color: totalGeral.lucro < 0 ? "#dc2626" : "#16a34a",
-                    }}
-                  >
-                    {formatarMoeda(totalGeral.lucro)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+        <div className="dashboard-medidas">
+          <MedidaProducao
+            titulo="Volume entregue"
+            unidade="m³"
+            valores={valoresVolume}
+            formatarValor={(valor) => `${formatarNumero(valor)} m³`}
+          />
+          <MedidaProducao
+            titulo="Valor bruto produzido"
+            unidade="R$"
+            valores={valoresBrutos}
+            formatarValor={formatarMoeda}
+          />
+          <MedidaProducao
+            titulo="Viagens realizadas"
+            valores={valoresViagens}
+            formatarValor={(valor) => formatarNumero(valor, 0)}
+          />
+        </div>
+
+        {volumeToneladas > 0 && (
+          <div className="dashboard-volume-bagaco">
+            <span className="dashboard-frota-marcador frota-bagaco" aria-hidden="true" />
+            <strong>Frota de Bagaço de Cana</strong>
+            <span>{formatarNumero(volumeToneladas)} ton.</span>
+            <small>Volume em toneladas, exibido separado da comparação em m³.</small>
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
-
-const estiloGridKpis = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-  gap: "16px",
-  marginBottom: "24px",
-};
-
-const estiloCard = {
-  background: "var(--cor-card)",
-  borderRadius: "var(--raio)",
-  boxShadow: "var(--sombra-card)",
-  padding: "24px",
-  marginBottom: "24px",
-};
-
-const estiloTituloCard = {
-  marginBottom: "18px",
-};
-
-const estiloLegendaPeriodo = {
-  color: "var(--cor-texto-secundario)",
-  fontSize: "13px",
-  marginBottom: "20px",
-};
-
-const estiloVazio = {
-  textAlign: "center",
-  padding: "50px 20px",
-  background: "#fafafa",
-  border: "1px dashed #ccc",
-  borderRadius: "12px",
-  color: "#777",
-};
-
-const estiloTabelaContainer = {
-  overflowX: "auto",
-  border: "1px solid var(--cor-borda)",
-  borderRadius: "10px",
-};
-
-const estiloTabela = {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: "950px",
-};
-
-const estiloTh = {
-  background: "#f9fafb",
-  color: "var(--cor-texto-secundario)",
-  padding: "12px 14px",
-  textAlign: "left",
-  fontSize: "12px",
-  textTransform: "uppercase",
-  letterSpacing: "0.04em",
-  whiteSpace: "nowrap",
-  borderBottom: "1px solid var(--cor-borda)",
-};
-
-const estiloTd = {
-  padding: "14px",
-  borderBottom: "1px solid var(--cor-borda)",
-  whiteSpace: "nowrap",
-  fontSize: "14px",
-};
-
-const estiloTdTotal = {
-  padding: "14px",
-  whiteSpace: "nowrap",
-  fontWeight: "bold",
-  background: "#f9fafb",
-  borderTop: "2px solid var(--cor-borda)",
-};
-
-const estiloLinhaClicavel = {
-  cursor: "pointer",
-};
-
-const estiloSetaPeriodo = {
-  color: "var(--cor-primaria)",
-  fontWeight: "bold",
-};
 
 export default Dashboard;
