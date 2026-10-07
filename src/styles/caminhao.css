@@ -1,0 +1,137 @@
+.caminhao-identificacao-card {
+  margin-bottom: 24px;
+  padding: 16px 22px;
+}
+
+.caminhao-identificacao-dados {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  color: var(--cor-texto);
+}
+
+.caminhao-identificacao-dados button {
+  margin-left: auto;
+}
+
+.caminhao-frota-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  padding: 5px 11px;
+  background: #f8fafc;
+  color: var(--cor-texto-secundario);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.caminhao-abastecimentos-desktop {
+  overflow-x: auto;
+}
+
+.caminhao-abastecimentos-mobile {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .caminhao-identificacao-card {
+    padding: 14px 16px;
+  }
+
+  .caminhao-identificacao-dados {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .caminhao-identificacao-dados button {
+    margin-left: 0;
+  }
+
+  .caminhao-abastecimentos-desktop {
+    display: none;
+  }
+
+  .caminhao-abastecimentos-mobile {
+    display: grid;
+    gap: 12px;
+  }
+
+  .caminhao-abastecimento-card {
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 12px;
+    background: white;
+  }
+
+  .caminhao-abastecimento-resumo {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 14px;
+  }
+
+  .caminhao-abastecimento-resumo > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .caminhao-abastecimento-resumo span,
+  .caminhao-abastecimento-detalhes dt {
+    color: var(--cor-texto-secundario);
+    font-size: 12px;
+  }
+
+  .caminhao-abastecimento-resumo strong {
+    overflow-wrap: anywhere;
+    font-size: 14px;
+  }
+
+  .caminhao-abastecimento-detalhes {
+    margin-top: 12px;
+    border-top: 1px solid var(--cor-borda);
+    padding-top: 10px;
+  }
+
+  .caminhao-abastecimento-detalhes summary {
+    color: var(--cor-primaria);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .caminhao-abastecimento-detalhes dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .caminhao-abastecimento-detalhes dl > div {
+    min-width: 0;
+  }
+
+  .caminhao-abastecimento-detalhes dt {
+    margin-bottom: 3px;
+  }
+
+  .caminhao-abastecimento-detalhes dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .caminhao-abastecimento-excluir {
+    border: 0;
+    border-radius: 6px;
+    padding: 8px 11px;
+    background: #dc3545;
+    color: white;
+    cursor: pointer;
+    font-weight: 700;
+  }
+}

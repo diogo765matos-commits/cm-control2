@@ -59,6 +59,7 @@ import { gerarEBaixarPlanilha } from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 import DateRangeFilter from "../components/DateRangeFilter";
 import KpiCard, { CORES_KPI } from "../components/KpiCard";
+import "../styles/caminhao.css";
 
 function Caminhao() {
   const { id } = useParams();
@@ -67,6 +68,7 @@ function Caminhao() {
   const [carregando, setCarregando] = useState(true);
   const [erroCarregamento, setErroCarregamento] = useState("");
   const [caminhao, setCaminhao] = useState(null);
+  const [icmsRegistros, setIcmsRegistros] = useState([]);
 
   const [filtroInicio, setFiltroInicio] = useState("");
   const [filtroFim, setFiltroFim] = useState("");
@@ -389,8 +391,6 @@ function Caminhao() {
   // ICMS A PAGAR (só Frota Terceirizada)
   // ======================
 
-  const [icmsRegistros, setIcmsRegistros] = useState([]);
-
   const [novoIcms, setNovoIcms] = useState({
     data: "",
     valor: "",
@@ -473,13 +473,6 @@ function Caminhao() {
       semanas.map((s) => [chavePeriodo(s.inicio, s.fim), { inicio: s.inicio, fim: s.fim }])
     ).values()
   ).sort((a, b) => (a.inicio < b.inicio ? 1 : -1));
-
-  const periodoPorChave = new Map(
-    periodosCaminhao.map((periodo) => [
-      chavePeriodo(periodo.inicio, periodo.fim),
-      periodo,
-    ])
-  );
 
   const semanasVisiveis = semanas.filter(semanaNoFiltro);
   const semanasAbastecimentoVisiveis = semanasAbastecimento.filter(
@@ -1079,7 +1072,6 @@ function Caminhao() {
             <button onClick={() => navigate("/frota")} style={estiloLinkBreadcrumb}>
               Frota
             </button>{" "}
-            &gt; {caminhao.modelo}
           </>
         }
         titulo={`🚛 ${caminhao.modelo}`}
@@ -1192,21 +1184,7 @@ function Caminhao() {
         </div>
       )}
 
-      <div style={estiloContainer}>
-        <div style={estiloCabecalhoTitulo}>
-          <div style={estiloTituloComBadge}>
-            <h2 style={{ margin: 0 }}>{caminhao.modelo}</h2>
-            <span style={estiloBadgeAtivo}>Ativo</span>
-          </div>
-
-          <button
-            style={estiloBotaoEditar}
-            onClick={abrirEdicaoCaminhao}
-          >
-            ✏️ Editar
-          </button>
-        </div>
-
+      <div style={estiloContainer} className="caminhao-identificacao-card">
         {editandoCaminhao ? (
           <div style={estiloFormulario}>
             <h3>Editar Caminhão</h3>
@@ -1278,84 +1256,20 @@ function Caminhao() {
             </div>
           </div>
         ) : (
-          <div style={estiloInformacoes}>
-            <div>
-              <p style={estiloLegenda}>Placa</p>
-              <strong>{caminhao.placa}</strong>
-            </div>
-
-            <div>
-              <p style={estiloLegenda}>Motorista</p>
-              <strong>{caminhao.motorista}</strong>
-            </div>
-
-            <div>
-              <p style={estiloLegenda}>Frota</p>
-              <strong>
-                {FROTAS.find((f) => f.tipo === caminhao.frota)?.titulo ??
-                  "Frota C&M"}
-              </strong>
-            </div>
+          <div className="caminhao-identificacao-dados">
+            <span><strong>Placa:</strong> {caminhao.placa}</span>
+            <span><strong>Motorista:</strong> {caminhao.motorista}</span>
+            <span className="caminhao-frota-badge">
+              {FROTAS.find((f) => f.tipo === caminhao.frota)?.titulo ??
+                "Frota C&M"}
+            </span>
+            <button
+              style={estiloBotaoEditar}
+              onClick={abrirEdicaoCaminhao}
+            >
+              ✏️ Editar
+            </button>
           </div>
-        )}
-      </div>
-
-      <div style={estiloGridKpis}>
-        {ehTerceirizada ? (
-          <>
-            <KpiCard
-              icone="📦"
-              cor={CORES_KPI.azul}
-              rotulo="Volume Entregue"
-              valor={`${formatarNumero(totalCaminhao.volumeEntregue)} m³`}
-              legenda="Total no período"
-            />
-            <KpiCard
-              icone="💰"
-              cor={CORES_KPI.verde}
-              rotulo="Valor Bruto"
-              valor={formatarMoeda(totalCaminhao.receitaBruta)}
-              legenda="Total no período"
-            />
-          </>
-        ) : (
-          <>
-            <KpiCard
-              icone="🚚"
-              cor={CORES_KPI.verde}
-              rotulo="Viagens Realizadas"
-              valor={totalCaminhao.totalViagens}
-              legenda="Total no período"
-            />
-            <KpiCard
-              icone="💰"
-              cor={CORES_KPI.verde}
-              rotulo="Receita Bruta"
-              valor={formatarMoeda(totalCaminhao.receitaBruta)}
-              legenda="Total no período"
-            />
-            <KpiCard
-              icone="⛽"
-              cor={CORES_KPI.roxo}
-              rotulo="Combustível"
-              valor={formatarMoeda(totalCaminhao.totalCombustivel)}
-              legenda="Total no período"
-            />
-            <KpiCard
-              icone="👤"
-              cor={CORES_KPI.azul}
-              rotulo="Motoristas (10%)"
-              valor={formatarMoeda(totalCaminhao.pagamentoMotoristas)}
-              legenda="Total no período"
-            />
-            <KpiCard
-              icone="📈"
-              cor={CORES_KPI.verde}
-              rotulo="Lucro da Frota"
-              valor={formatarMoeda(totalCaminhao.lucro)}
-              legenda="Total no período"
-            />
-          </>
         )}
       </div>
 
@@ -1388,7 +1302,7 @@ function Caminhao() {
               onClick={() => setAbaAtiva("despesas")}
               style={estiloAba(abaAtiva === "despesas")}
             >
-              🧾 Despesas Extras
+              🧾 Despesas do Caminhão
             </button>
           )}
 
@@ -1413,7 +1327,7 @@ function Caminhao() {
     onClick={() => setAbaAtiva("documentacao")}
     style={estiloAba(abaAtiva === "documentacao")}
   >
-    📋 Documentação
+    📋 Dados do Motorista
   </button>
 )}
         </div>
@@ -1422,15 +1336,6 @@ function Caminhao() {
 
         {abaAtiva === "viagens" && (
              <div>
-                <div style={{ marginBottom: "20px" }}>
-  <CardResumo
-    titulo="Quantidade de Viagens"
-    valor={semanas.reduce(
-      (total, semana) => total + semana.viagens.length,
-      0
-    )}
-  />
-</div>
             {!semanaAberta ? (
               <>
                 <div style={estiloCabecalhoSecao}>
@@ -1585,54 +1490,6 @@ function Caminhao() {
                                 : "viagens"}
                             </p>
                           </div>
-
-                          {(() => {
-                            const dadosPeriodo = periodoPorChave.get(
-                              chavePeriodo(semana.inicio, semana.fim)
-                            );
-
-                            return (
-                              <div style={estiloEstatisticasSemana}>
-                                <MiniEstatistica
-                                  titulo={`${unidade.rotulo} Entregue`}
-                                  valor={formatarNumero(
-                                    dadosPeriodo?.volumeEntregue || 0
-                                  )}
-                                />
-                                <MiniEstatistica
-                                  titulo="Receita Bruta"
-                                  valor={formatarMoeda(
-                                    dadosPeriodo?.receitaBruta || 0
-                                  )}
-                                />
-                                <MiniEstatistica
-                                  titulo="Combustível"
-                                  valor={formatarMoeda(
-                                    dadosPeriodo?.totalCombustivel || 0
-                                  )}
-                                />
-                                <MiniEstatistica
-                                  titulo="Despesas Extras"
-                                  valor={formatarMoeda(
-                                    dadosPeriodo?.totalDespesasExtras || 0
-                                  )}
-                                />
-                                <MiniEstatistica
-                                  titulo="Motoristas (10%)"
-                                  valor={formatarMoeda(
-                                    dadosPeriodo?.pagamentoMotoristas || 0
-                                  )}
-                                />
-                                <MiniEstatistica
-                                  titulo="Lucro da Frota"
-                                  valor={formatarMoeda(
-                                    dadosPeriodo?.lucro || 0
-                                  )}
-                                  destaque
-                                />
-                              </div>
-                            );
-                          })()}
 
                           <div style={{ display: "flex", gap: "10px" }}>
                             <button
@@ -2281,6 +2138,7 @@ function Caminhao() {
       marginTop: "25px",
     }}
   >
+    <div className="caminhao-abastecimentos-desktop">
     <table
       style={{
         ...estiloTabela,
@@ -2382,6 +2240,51 @@ function Caminhao() {
   ))}
 </tbody>
     </table>
+    </div>
+    <div className="caminhao-abastecimentos-mobile">
+      {semana.abastecimentos.map((abastecimento) => (
+        <article className="caminhao-abastecimento-card" key={abastecimento.id}>
+          <div className="caminhao-abastecimento-resumo">
+            <div>
+              <span>Data</span>
+              <strong>{formatarData(abastecimento.data)}</strong>
+            </div>
+            <div>
+              <span>Posto</span>
+              <strong>{abastecimento.posto}</strong>
+            </div>
+            <div>
+              <span>KM</span>
+              <strong>{formatarNumero(abastecimento.km)}</strong>
+            </div>
+            <div>
+              <span>Total</span>
+              <strong>{formatarMoeda(abastecimento.valorTotal)}</strong>
+            </div>
+          </div>
+          <details className="caminhao-abastecimento-detalhes">
+            <summary>Ver detalhes</summary>
+            <dl>
+              <div><dt>Diesel</dt><dd>{formatarNumero(abastecimento.litrosDiesel)} L</dd></div>
+              <div><dt>Média</dt><dd>{abastecimento.media === null ? "—" : `${formatarNumero(abastecimento.media)} km/L`}</dd></div>
+              <div><dt>Preço/L Diesel</dt><dd>{formatarMoeda(abastecimento.precoDiesel)}</dd></div>
+              <div><dt>ARLA</dt><dd>{formatarNumero(abastecimento.litrosArla)} L</dd></div>
+              <div><dt>Preço/L ARLA</dt><dd>{formatarMoeda(abastecimento.precoArla)}</dd></div>
+              <div><dt>Valor Diesel</dt><dd>{formatarMoeda(abastecimento.valorDiesel)}</dd></div>
+              <div><dt>Valor ARLA</dt><dd>{formatarMoeda(abastecimento.valorArla)}</dd></div>
+              <div><dt>Desconto</dt><dd>{formatarMoeda(abastecimento.desconto || 0)}</dd></div>
+            </dl>
+            <button
+              type="button"
+              onClick={() => excluirAbastecimento(abastecimento.id)}
+              className="caminhao-abastecimento-excluir"
+            >
+              Excluir
+            </button>
+          </details>
+        </article>
+      ))}
+    </div>
     <div
   style={{
     ...estiloResumoFinanceiro,
@@ -2716,7 +2619,7 @@ function Caminhao() {
 
     <div style={estiloCabecalhoSecao}>
       <div>
-        <h2>Despesas Extras</h2>
+        <h2>Despesas do Caminhão</h2>
 
         <p style={estiloLegenda}>
           Registre despesas extras deste caminhão.
@@ -2963,7 +2866,7 @@ function Caminhao() {
 
     <h3>Despesas Cadastradas</h3>
     <h3 style={{ marginTop: "10px", marginBottom: "20px" }}>
-  Total de Despesas Extras: R${" "}
+  Total de Despesas do Caminhão: R${" "}
   {semanaDespesaAberta.despesas
   .reduce((total, despesa) => total + Number(despesa.valor || 0), 0)
   .toFixed(2)
@@ -3030,82 +2933,89 @@ function Caminhao() {
         {/* FINANCEIRO */}
 
 {abaAtiva === "financeiro" && (() => {
-
-  const volumeTotalEntregue = semanas.reduce(
-    (total, semana) =>
-      total +
-      semana.viagens.reduce(
-        (soma, viagem) =>
-          soma + (converterNumero(viagem.volEntregue) || 0),
-        0
-      ),
-    0
-  );
-
-  // Cada viagem usa a taxa que estava em vigor quando foi lançada (salva
-  // nela mesma) — viagens antigas não mudam de valor quando o preço é
-  // reajustado. Por isso a receita é somada viagem a viagem, e não
-  // volume total x taxa atual.
-  const receitaBruta = semanas.reduce(
-    (total, semana) =>
-      total +
-      semana.viagens.reduce(
-        (soma, viagem) =>
-          soma +
-          (converterNumero(viagem.volEntregue) || 0) *
-            taxaEfetivaViagem(viagem, caminhao.frota),
-        0
-      ),
-    0
-  );
-
-  const pagamentoMotorista =
-    receitaBruta * PERCENTUAL_MOTORISTA;
-
-  const valorEmpresa = receitaBruta - pagamentoMotorista;
+  const valorEmpresa =
+    totalCaminhao.receitaBruta - totalCaminhao.pagamentoMotoristas;
 
   return (
     <div>
-
-      <h2>Financeiro</h2>
+      <h2>Resumo do Período</h2>
 
       <p style={estiloLegenda}>
         {ehTerceirizada
-          ? `${unidade.rotulo} entregue e valor bruto das operações deste caminhão.`
-          : "Resumo financeiro das operações deste caminhão."}
+          ? `${unidade.rotulo} entregue e valor bruto no período selecionado.`
+          : "Indicadores da operação no período selecionado."}
       </p>
 
-      <div style={estiloCardsResumo}>
-
-        <CardResumo
-          titulo={`${unidade.rotulo} Total Entregue`}
-          valor={formatarNumero(volumeTotalEntregue)}
+      <div style={estiloGridKpis}>
+        {!ehTerceirizada && (
+          <KpiCard
+            icone="🚚"
+            cor={CORES_KPI.verde}
+            rotulo="Viagens Realizadas"
+            valor={totalCaminhao.totalViagens}
+            legenda="No período"
+          />
+        )}
+        <KpiCard
+          icone="📦"
+          cor={CORES_KPI.azul}
+          rotulo={`${unidade.rotulo} Entregue`}
+          valor={formatarNumero(totalCaminhao.volumeEntregue)}
+          legenda="No período"
         />
-
-        <CardResumo
-          titulo="Valor Bruto"
-          valor={formatarMoeda(receitaBruta)}
+        <KpiCard
+          icone="💰"
+          cor={CORES_KPI.verde}
+          rotulo="Valor Bruto"
+          valor={formatarMoeda(totalCaminhao.receitaBruta)}
+          legenda="No período"
         />
-
         {!ehTerceirizada && (
           <>
-            <CardResumo
-              titulo={`Valor por ${unidade.rotulo} (Atual)`}
+            <KpiCard
+              icone="⛽"
+              cor={CORES_KPI.roxo}
+              rotulo="Combustível"
+              valor={formatarMoeda(totalCaminhao.totalCombustivel)}
+              legenda="No período"
+            />
+            <KpiCard
+              icone="🧾"
+              cor={CORES_KPI.roxo}
+              rotulo="Despesas do Caminhão"
+              valor={formatarMoeda(totalCaminhao.totalDespesasExtras)}
+              legenda="No período"
+            />
+            <KpiCard
+              icone="👤"
+              cor={CORES_KPI.azul}
+              rotulo={`Motoristas (${PERCENTUAL_MOTORISTA * 100}%)`}
+              valor={formatarMoeda(totalCaminhao.pagamentoMotoristas)}
+              legenda="No período"
+            />
+            <KpiCard
+              icone="📈"
+              cor={CORES_KPI.verde}
+              rotulo="Lucro da Frota"
+              valor={formatarMoeda(totalCaminhao.lucro)}
+              legenda="No período"
+            />
+            <KpiCard
+              icone="📊"
+              cor={CORES_KPI.azul}
+              rotulo={`Valor por ${unidade.rotulo} (Atual)`}
               valor={formatarMoeda(taxaCaminhao)}
+              legenda="Taxa vigente"
             />
-
-            <CardResumo
-              titulo={`Pagamento do Motorista (${PERCENTUAL_MOTORISTA * 100}%)`}
-              valor={formatarMoeda(pagamentoMotorista)}
-            />
-
-            <CardResumo
-              titulo="Fica para a Empresa"
+            <KpiCard
+              icone="🏢"
+              cor={CORES_KPI.verde}
+              rotulo="Fica para a Empresa"
               valor={formatarMoeda(valorEmpresa)}
+              legenda="Valor bruto menos pagamento do motorista"
             />
           </>
         )}
-
       </div>
 
       <h2 style={{ marginTop: "35px" }}>Fechamento por Semana</h2>
@@ -3330,8 +3240,7 @@ function Caminhao() {
           <div>
             <h2>Dados do Motorista</h2>
             <p style={estiloLegenda}>
-              Nome, CNH, CPF e telefone do motorista responsável por este
-              caminhão.
+              CNH, CPF e telefone do motorista responsável por este caminhão.
             </p>
 
             {editandoDocumentacao ? (
@@ -3339,11 +3248,6 @@ function Caminhao() {
                 <h3>Editar Dados do Motorista</h3>
 
                 <div style={estiloCampos}>
-                  <div style={estiloLabel}>
-                    Nome
-                    <span style={estiloPlacaFixa}>{caminhao.motorista}</span>
-                  </div>
-
                   <Campo
                     titulo="CNH"
                     value={dadosDocumentacao.cnh}
@@ -3398,11 +3302,6 @@ function Caminhao() {
               <div style={{ ...estiloCabecalhoTitulo, marginTop: "16px" }}>
                 <div style={estiloInformacoes}>
                   <div>
-                    <p style={estiloLegenda}>Nome</p>
-                    <strong>{caminhao.motorista}</strong>
-                  </div>
-
-                  <div>
                     <p style={estiloLegenda}>CNH</p>
                     <strong>{caminhao.motorista_cnh || "-"}</strong>
                   </div>
@@ -3432,13 +3331,14 @@ function Caminhao() {
 }
 
 const estiloBotaoRelatorio = {
-  background: "var(--cor-sidebar)",
-  color: "white",
-  border: "none",
-  padding: "12px 20px",
+  background: "white",
+  color: "var(--cor-texto-secundario)",
+  border: "1px solid var(--cor-borda)",
+  padding: "9px 14px",
   borderRadius: "var(--raio-pequeno)",
   cursor: "pointer",
-  fontWeight: "bold",
+  fontWeight: "600",
+  fontSize: "13px",
   whiteSpace: "nowrap",
 };
 
@@ -3517,52 +3417,6 @@ function Campo({
   );
 }
 
-function CardResumo({ titulo, valor }) {
-  return (
-    <div style={estiloCardResumo}>
-      <span style={estiloLegenda}>{titulo}</span>
-
-      <strong style={estiloNumeroResumo}>
-        {valor}
-      </strong>
-    </div>
-  );
-}
-
-function MiniEstatistica({ titulo, valor, destaque }) {
-  return (
-    <div style={estiloMiniEstatistica}>
-      <span style={estiloMiniEstatisticaTitulo}>{titulo}</span>
-      <strong
-        style={{
-          ...estiloMiniEstatisticaValor,
-          color: destaque ? "var(--cor-primaria)" : "var(--cor-texto)",
-        }}
-      >
-        {valor}
-      </strong>
-    </div>
-  );
-}
-
-const estiloMiniEstatistica = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "3px",
-  minWidth: "90px",
-};
-
-const estiloMiniEstatisticaTitulo = {
-  fontSize: "11px",
-  color: "var(--cor-texto-secundario)",
-  whiteSpace: "nowrap",
-};
-
-const estiloMiniEstatisticaValor = {
-  fontSize: "13px",
-  whiteSpace: "nowrap",
-};
-
 // =========================
 // ESTILOS
 // =========================
@@ -3582,14 +3436,6 @@ function estiloAba(ativa) {
     transition: "color 0.15s, border-color 0.15s",
   };
 }
-
-const estiloVoltar = {
-  border: "none",
-  background: "transparent",
-  cursor: "pointer",
-  fontSize: "16px",
-  marginBottom: "25px",
-};
 
 const estiloContainer = {
   background: "white",
@@ -3615,34 +3461,11 @@ const estiloLinkBreadcrumb = {
   textDecoration: "underline",
 };
 
-const estiloTituloComBadge = {
-  display: "flex",
-  alignItems: "center",
-  gap: "10px",
-};
-
-const estiloBadgeAtivo = {
-  background: "var(--cor-primaria-clara)",
-  color: "var(--cor-primaria-escura)",
-  fontSize: "11px",
-  fontWeight: "bold",
-  padding: "4px 10px",
-  borderRadius: "999px",
-};
-
 const estiloGridKpis = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
   gap: "16px",
   marginBottom: "24px",
-};
-
-const estiloPlacaFixa = {
-  padding: "12px",
-  border: "1px solid #eee",
-  borderRadius: "8px",
-  background: "#f7f7f7",
-  color: "#777",
 };
 
 const estiloBotaoEditar = {
@@ -3827,13 +3650,6 @@ const estiloSemanaInfo = {
   minWidth: "160px",
 };
 
-const estiloEstatisticasSemana = {
-  display: "flex",
-  gap: "22px",
-  flexWrap: "wrap",
-  flex: 1,
-};
-
 const estiloQuantidade = {
   marginTop: "8px",
   color: "var(--cor-primaria)",
@@ -3869,28 +3685,6 @@ const estiloTd = {
   borderBottom: "1px solid var(--cor-borda)",
   whiteSpace: "nowrap",
   fontSize: "14px",
-};
-
-const estiloCardsResumo = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(200px, 1fr))",
-  gap: "20px",
-  marginTop: "25px",
-};
-
-const estiloCardResumo = {
-  border: "1px solid #eee",
-  borderRadius: "12px",
-  padding: "20px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "10px",
-};
-
-const estiloNumeroResumo = {
-  fontSize: "24px",
-  color: "var(--cor-primaria)",
 };
 
 const estiloResumoFinanceiro = {
