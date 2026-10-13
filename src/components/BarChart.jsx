@@ -16,7 +16,7 @@ function proximoNumeroRedondo(valor) {
   return multiplicador * base;
 }
 
-function BarChart({ dados, formatarValor, corBarra = "#34d399" }) {
+function BarChart({ dados, formatarValor, corBarra = "#b18b3b" }) {
   if (!dados || dados.length === 0) {
     return <p style={estiloVazio}>Sem dados no período selecionado.</p>;
   }
@@ -50,10 +50,10 @@ function BarChart({ dados, formatarValor, corBarra = "#34d399" }) {
                 x2={largura - 10}
                 y1={y}
                 y2={y}
-                stroke="#eef0f4"
+                stroke="#e4e0d7"
                 strokeWidth={1}
               />
-              <text x={margemEsquerda - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#9aa3b2">
+              <text x={margemEsquerda - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#68645c">
                 {formatarValor(valor)}
               </text>
             </g>
@@ -82,7 +82,7 @@ function BarChart({ dados, formatarValor, corBarra = "#34d399" }) {
                 textAnchor="middle"
                 fontSize="11"
                 fontWeight="bold"
-                fill="#111827"
+                fill="#232323"
               >
                 {formatarValor(item.value)}
               </text>
@@ -91,7 +91,7 @@ function BarChart({ dados, formatarValor, corBarra = "#34d399" }) {
                 y={alturaGrafico + 38}
                 textAnchor="middle"
                 fontSize="11"
-                fill="#6b7280"
+                fill="#68645c"
               >
                 {item.label}
               </text>

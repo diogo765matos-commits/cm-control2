@@ -50,7 +50,7 @@ function Login({ onLogin }) {
       <form style={estiloCard} onSubmit={enviar}>
         <h1 style={{ marginBottom: "6px" }}>🚛 C&M Control</h1>
 
-        <p style={{ color: "#777", marginBottom: "20px" }}>
+        <p style={{ color: "var(--cor-texto-secundario)", marginBottom: "20px" }}>
           {modo === "entrar"
             ? "Entre com sua conta para acessar o sistema."
             : "Crie sua conta para acessar o sistema."}
@@ -126,7 +126,7 @@ const estiloTela = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "#f4f4f4",
+  background: "var(--cor-sidebar)",
 };
 
 const estiloCard = {
@@ -144,7 +144,7 @@ const estiloAbas = {
   display: "flex",
   gap: "8px",
   marginBottom: "22px",
-  background: "#f2f2f2",
+  background: "var(--cor-superficie)",
   padding: "4px",
   borderRadius: "10px",
 };
@@ -157,7 +157,7 @@ function estiloAba(ativa) {
     borderRadius: "8px",
     cursor: "pointer",
     fontWeight: ativa ? "bold" : "normal",
-    background: ativa ? "#D4A019" : "transparent",
+    background: ativa ? "var(--cor-dourado)" : "transparent",
     color: ativa ? "#111" : "#555",
   };
 }
@@ -167,7 +167,7 @@ const estiloLabel = {
   flexDirection: "column",
   gap: "8px",
   fontWeight: "600",
-  color: "#444",
+  color: "var(--cor-texto)",
   marginBottom: "18px",
 };
 
@@ -179,7 +179,7 @@ const estiloInput = {
 };
 
 const estiloBotao = {
-  background: "#D4A019",
+  background: "var(--cor-dourado)",
   color: "#111",
   border: "none",
   padding: "14px",

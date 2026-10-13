@@ -1066,8 +1066,9 @@ function Caminhao() {
   // =========================
 
   return (
-    <div>
+    <div className="caminhao-page">
       <PageHeader
+        className="caminhao-page-header"
         breadcrumb={
           <>
             <button onClick={() => navigate("/frota")} style={estiloLinkBreadcrumb}>
@@ -1163,7 +1164,7 @@ function Caminhao() {
                   />
                 </label>
 
-                <div style={estiloAcoesFormulario}>
+                <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
                   <button
                     style={estiloBotaoCancelar}
                     onClick={() => setMostrarRelatorio(false)}
@@ -1187,10 +1188,10 @@ function Caminhao() {
 
       <div style={estiloContainer} className="caminhao-identificacao-card">
         {editandoCaminhao ? (
-          <div style={estiloFormulario}>
+          <div style={estiloFormulario} className="caminhao-formulario">
             <h3>Editar Caminhão</h3>
 
-            <div style={estiloCampos}>
+            <div style={estiloCampos} className="caminhao-campos">
               <Campo
                 titulo="Modelo"
                 value={dadosEdicao.modelo}
@@ -1240,7 +1241,7 @@ function Caminhao() {
               </label>
             </div>
 
-            <div style={estiloAcoesFormulario}>
+            <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
               <button
                 style={estiloBotaoCancelar}
                 onClick={() => setEditandoCaminhao(false)}
@@ -1274,14 +1275,14 @@ function Caminhao() {
         )}
       </div>
 
-      <div style={estiloContainer}>
-        <div style={estiloMenuAbas}>
+      <div style={estiloContainer} className="caminhao-conteudo">
+        <div style={estiloMenuAbas} className="caminhao-abas" aria-label="Seções do caminhão">
 
 
           <button
             onClick={() => setAbaAtiva("viagens")}
             style={estiloAba(abaAtiva === "viagens")}
-          >
+           aria-pressed={abaAtiva === "viagens"}>
             🚚 Viagens
           </button>
 
@@ -1293,7 +1294,7 @@ function Caminhao() {
               style={estiloAba(
                 abaAtiva === "abastecimentos"
               )}
-            >
+             aria-pressed={abaAtiva === "abastecimentos"}>
               ⛽ Abastecimentos
             </button>
           )}
@@ -1302,7 +1303,7 @@ function Caminhao() {
             <button
               onClick={() => setAbaAtiva("despesas")}
               style={estiloAba(abaAtiva === "despesas")}
-            >
+             aria-pressed={abaAtiva === "despesas"}>
               🧾 Despesas do Caminhão
             </button>
           )}
@@ -1310,7 +1311,7 @@ function Caminhao() {
 <button
   onClick={() => setAbaAtiva("financeiro")}
   style={estiloAba(abaAtiva === "financeiro")}
->
+ aria-pressed={abaAtiva === "financeiro"}>
   💰 Financeiro
 </button>
 
@@ -1318,7 +1319,7 @@ function Caminhao() {
   <button
     onClick={() => setAbaAtiva("icms")}
     style={estiloAba(abaAtiva === "icms")}
-  >
+   aria-pressed={abaAtiva === "icms"}>
     🧾 ICMS a Pagar
   </button>
 )}
@@ -1327,7 +1328,7 @@ function Caminhao() {
   <button
     onClick={() => setAbaAtiva("documentacao")}
     style={estiloAba(abaAtiva === "documentacao")}
-  >
+   aria-pressed={abaAtiva === "documentacao"}>
     📋 Dados do Motorista
   </button>
 )}
@@ -1339,7 +1340,7 @@ function Caminhao() {
              <div>
             {!semanaAberta ? (
               <>
-                <div style={estiloCabecalhoSecao}>
+                <div style={estiloCabecalhoSecao} className="caminhao-cabecalho-secao">
                   <div>
                     <h2>Semanas</h2>
 
@@ -1360,10 +1361,10 @@ function Caminhao() {
                 </div>
 
                 {mostrarNovaSemana && (
-                  <div style={estiloFormulario}>
+                  <div style={estiloFormulario} className="caminhao-formulario">
                     <h3>Nova Semana</h3>
 
-                    <div style={estiloCampos}>
+                    <div style={estiloCampos} className="caminhao-campos">
                       <Campo
                         titulo="Início"
                         type="date"
@@ -1383,7 +1384,7 @@ function Caminhao() {
                       />
                     </div>
 
-                    <div style={estiloAcoesFormulario}>
+                    <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
                       <button
                         style={estiloBotaoCancelar}
                         onClick={() =>
@@ -1418,11 +1419,11 @@ function Caminhao() {
                     </p>
                   </div>
                 ) : (
-                  <div style={estiloListaSemanas}>
+                  <div style={estiloListaSemanas} className="caminhao-lista-semanas">
                     {semanasVisiveis.map((semana) =>
                       editandoSemanaViagens?.id === semana.id ? (
-                        <div key={semana.id} style={estiloSemana}>
-                          <div style={estiloCampos}>
+                        <div key={semana.id} style={estiloSemana} className="caminhao-editar-semana">
+                          <div style={estiloCampos} className="caminhao-campos">
                             <Campo
                               titulo="Início"
                               type="date"
@@ -1469,9 +1470,9 @@ function Caminhao() {
                       ) : (
                         <div
                           key={semana.id}
-                          style={estiloSemanaRica}
+                          style={estiloSemanaRica} className="caminhao-semana"
                         >
-                          <div style={estiloSemanaInfo}>
+                          <div style={estiloSemanaInfo} className="caminhao-semana-info">
                             <p style={estiloLegenda}>
                               Período
                             </p>
@@ -1484,7 +1485,7 @@ function Caminhao() {
                               {formatarData(semana.fim)}
                             </h3>
 
-                            <p style={estiloQuantidade}>
+                            <p style={estiloQuantidade} className="caminhao-quantidade">
                               {semana.viagens.length}{" "}
                               {semana.viagens.length === 1
                                 ? "viagem"
@@ -1498,7 +1499,7 @@ function Caminhao() {
                               onClick={() =>
                                 abrirEdicaoSemanaViagens(semana)
                               }
-                            >
+                             aria-label="Editar período da semana">
                               ✏️
                             </button>
 
@@ -1519,7 +1520,7 @@ function Caminhao() {
               </>
             ) : (
               <>
-                <div style={estiloCabecalhoSecao}>
+                <div style={estiloCabecalhoSecao} className="caminhao-cabecalho-secao">
                   <div>
                     <button
                       style={estiloBotaoVoltarSemana}
@@ -1576,7 +1577,7 @@ function Caminhao() {
                 </div>
 
                 {mostrarNovaViagem && (
-                  <div style={estiloFormulario}>
+                  <div style={estiloFormulario} className="caminhao-formulario">
                     <h3>Nova Viagem</h3>
 
                     <div style={estiloGridFormulario}>
@@ -1696,7 +1697,7 @@ function Caminhao() {
                       </strong>
                     </div>
 
-                    <div style={estiloAcoesFormulario}>
+                    <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
                       <button
                         style={estiloBotaoCancelar}
                         onClick={() =>
@@ -1846,7 +1847,7 @@ function Caminhao() {
 
         {abaAtiva === "abastecimentos" && (
           <div>
-            <div style={estiloCabecalhoSecao}>
+            <div style={estiloCabecalhoSecao} className="caminhao-cabecalho-secao">
               <div>
                 <h2>Abastecimentos</h2>
 
@@ -1864,12 +1865,14 @@ function Caminhao() {
 >
     + Nova Semana
 </button>
+</div>
+
 {mostrarNovaSemanaAbastecimento && (
-    <div style={estiloFormulario}>
+    <div style={estiloFormulario} className="caminhao-formulario">
 
         <h3>Nova Semana de Abastecimento</h3>
 
-        <div style={estiloCampos}>
+        <div style={estiloCampos} className="caminhao-campos">
 
             <Campo
                 titulo="Início"
@@ -1976,7 +1979,7 @@ function Caminhao() {
                 marginTop: "12px",
             }}
         >
-            <div style={estiloCampos}>
+            <div style={estiloCampos} className="caminhao-campos">
                 <Campo
                     titulo="Início"
                     type="date"
@@ -2022,26 +2025,14 @@ function Caminhao() {
 
             <div
                 key={semana.id}
-                style={{
-                    padding: "18px",
-                    border: "1px solid #ddd",
-                    borderRadius: "10px",
-                    marginTop: "12px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center"
-                }}
+                className="caminhao-semana caminhao-semana-inline"
             >
 
-                <div>
-                    <strong>
-                        Período: {semana.inicio} até {semana.fim}
-                    </strong>
-
-                    <p style={{ margin: "6px 0 0" }}>
+                <div className="caminhao-semana-info"><p style={estiloLegenda}>Período</p><h3>
+                        {formatarData(semana.inicio)} até {formatarData(semana.fim)}
+                    </h3><p className="caminhao-quantidade">
                         {semana.abastecimentos.length} abastecimento(s)
-                    </p>
-                </div>
+                    </p></div>
 
                 <div style={{ display: "flex", gap: "10px" }}>
                     <button
@@ -2049,7 +2040,7 @@ function Caminhao() {
                         onClick={() =>
                             abrirEdicaoSemanaAbastecimento(semana)
                         }
-                    >
+                     aria-label="Editar período da semana">
                         ✏️
                     </button>
 
@@ -2376,7 +2367,7 @@ function Caminhao() {
     );
 
 })()}
-            </div>
+
 
 
             {semanaAbastecimentoAberta && mostrarNovoAbastecimento && (
@@ -2588,7 +2579,7 @@ function Caminhao() {
                   </div>
                 </div>
 
-                <div style={estiloAcoesFormulario}>
+                <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
                   <button
                     style={estiloBotaoCancelar}
                     onClick={() =>
@@ -2618,7 +2609,7 @@ function Caminhao() {
 {abaAtiva === "despesas" && (
   <div>
 
-    <div style={estiloCabecalhoSecao}>
+    <div style={estiloCabecalhoSecao} className="caminhao-cabecalho-secao">
       <div>
         <h2>Despesas do Caminhão</h2>
 
@@ -2628,14 +2619,14 @@ function Caminhao() {
       </div>
     </div>
 
-    <div style={{ marginTop: "20px", marginBottom: "25px" }}>
+    <div className="caminhao-cabecalho-secao caminhao-semanas-titulo"><div>
   <h2>Semanas</h2>
 
   <p style={estiloLegenda}>
     Organize as despesas por período semanal.
   </p>
 
-  <button
+</div>  <button
     style={estiloBotaoDourado}
     onClick={() => setMostrarNovaSemanaDespesa(true)}
   >
@@ -2644,10 +2635,10 @@ function Caminhao() {
 </div>
 
 {mostrarNovaSemanaDespesa && (
-  <div style={estiloFormulario}>
+  <div style={estiloFormulario} className="caminhao-formulario">
     <h3>Nova Semana</h3>
 
-    <div style={estiloCampos}>
+    <div style={estiloCampos} className="caminhao-campos">
       <Campo
         titulo="Início"
         type="date"
@@ -2688,7 +2679,7 @@ function Caminhao() {
             marginBottom: "15px",
           }}
         >
-          <div style={estiloCampos}>
+          <div style={estiloCampos} className="caminhao-campos">
             <Campo
               titulo="Início"
               type="date"
@@ -2714,7 +2705,7 @@ function Caminhao() {
             />
           </div>
 
-          <div style={estiloAcoesFormulario}>
+          <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
             <button
               style={estiloBotaoCancelar}
               onClick={() => setEditandoSemanaDespesa(null)}
@@ -2733,27 +2724,22 @@ function Caminhao() {
       ) : (
         <div
           key={semana.id}
-          style={{
-            ...estiloFormulario,
-            marginBottom: "15px",
-          }}
+          className="caminhao-semana caminhao-semana-inline"
         >
-          <h3>
+          <div className="caminhao-semana-info"><p style={estiloLegenda}>Período</p><h3>
             {formatarData(semana.inicio)} até {formatarData(semana.fim)}
-          </h3>
-
-          <p style={estiloLegenda}>
+          </h3><p className="caminhao-quantidade">
             {semana.despesas.length}{" "}
             {semana.despesas.length === 1
               ? "despesa cadastrada"
               : "despesas cadastradas"}
-          </p>
+          </p></div>
 
           <div style={{ display: "flex", gap: "10px" }}>
             <button
               style={estiloBotaoEditar}
               onClick={() => abrirEdicaoSemanaDespesa(semana)}
-            >
+             aria-label="Editar período da semana">
               ✏️ Editar Período
             </button>
 
@@ -2771,7 +2757,7 @@ function Caminhao() {
 )}
 {semanaDespesaAberta && (
   <>
-  <div style={estiloCabecalhoSecao}>
+  <div style={estiloCabecalhoSecao} className="caminhao-cabecalho-secao">
   <div>
     <button
       style={estiloBotaoVoltarSemana}
@@ -2807,11 +2793,11 @@ function Caminhao() {
     </p>
   </div>
 </div>
-    <div style={estiloFormulario}>
+    <div style={estiloFormulario} className="caminhao-formulario">
 
       <h3>Nova Despesa</h3>
 
-      <div style={estiloCampos}>
+      <div style={estiloCampos} className="caminhao-campos">
 
         <Campo
   titulo="Data"
@@ -2938,7 +2924,7 @@ function Caminhao() {
     totalCaminhao.receitaBruta - totalCaminhao.pagamentoMotoristas;
 
   return (
-    <div>
+    <div className="caminhao-financeiro">
       <h2>Resumo do Período</h2>
 
       <p style={estiloLegenda}>
@@ -2947,8 +2933,31 @@ function Caminhao() {
           : "Indicadores da operação no período selecionado."}
       </p>
 
-      <div style={estiloGridKpis}>
-        {!ehTerceirizada && (
+      <div className="caminhao-financeiro-principais" aria-label="Resultados principais">
+<KpiCard
+          icone="💰"
+          cor={CORES_KPI.verde}
+          rotulo="Valor Bruto"
+          valor={formatarMoeda(totalCaminhao.receitaBruta)}
+          legenda="No período"
+        />
+{!ehTerceirizada && <><KpiCard
+              icone="📈"
+              cor={CORES_KPI.verde}
+              rotulo="Lucro da Frota"
+              valor={formatarMoeda(totalCaminhao.lucro)}
+              legenda="No período"
+            /><KpiCard
+              icone="🏢"
+              cor={CORES_KPI.verde}
+              rotulo="Fica para a Empresa"
+              valor={formatarMoeda(valorEmpresa)}
+              legenda="Valor bruto menos pagamento do motorista"
+            /></>}
+</div>
+<h3 className="caminhao-financeiro-subtitulo">Indicadores da operação</h3>
+<div className="caminhao-financeiro-secundarios" aria-label="Indicadores operacionais">
+{!ehTerceirizada && (
           <KpiCard
             icone="🚚"
             cor={CORES_KPI.verde}
@@ -2956,68 +2965,39 @@ function Caminhao() {
             valor={totalCaminhao.totalViagens}
             legenda="No período"
           />
-        )}
-        <KpiCard
+        )}<KpiCard
           icone="📦"
           cor={CORES_KPI.azul}
           rotulo={`${unidade.rotulo} Entregue`}
           valor={formatarNumero(totalCaminhao.volumeEntregue)}
           legenda="No período"
         />
-        <KpiCard
-          icone="💰"
-          cor={CORES_KPI.verde}
-          rotulo="Valor Bruto"
-          valor={formatarMoeda(totalCaminhao.receitaBruta)}
-          legenda="No período"
-        />
-        {!ehTerceirizada && (
-          <>
-            <KpiCard
+{!ehTerceirizada && <><KpiCard
               icone="⛽"
               cor={CORES_KPI.roxo}
               rotulo="Combustível"
               valor={formatarMoeda(totalCaminhao.totalCombustivel)}
               legenda="No período"
-            />
-            <KpiCard
+            /><KpiCard
               icone="🧾"
               cor={CORES_KPI.roxo}
               rotulo="Despesas do Caminhão"
               valor={formatarMoeda(totalCaminhao.totalDespesasExtras)}
               legenda="No período"
-            />
-            <KpiCard
+            /><KpiCard
               icone="👤"
               cor={CORES_KPI.azul}
               rotulo={`Motoristas (${PERCENTUAL_MOTORISTA * 100}%)`}
               valor={formatarMoeda(totalCaminhao.pagamentoMotoristas)}
               legenda="No período"
-            />
-            <KpiCard
-              icone="📈"
-              cor={CORES_KPI.verde}
-              rotulo="Lucro da Frota"
-              valor={formatarMoeda(totalCaminhao.lucro)}
-              legenda="No período"
-            />
-            <KpiCard
+            /><KpiCard
               icone="📊"
               cor={CORES_KPI.azul}
               rotulo={`Valor por ${unidade.rotulo} (Atual)`}
               valor={formatarMoeda(taxaCaminhao)}
               legenda="Taxa vigente"
-            />
-            <KpiCard
-              icone="🏢"
-              cor={CORES_KPI.verde}
-              rotulo="Fica para a Empresa"
-              valor={formatarMoeda(valorEmpresa)}
-              legenda="Valor bruto menos pagamento do motorista"
-            />
-          </>
-        )}
-      </div>
+            /></>}
+</div>
 
       <h2 style={{ marginTop: "35px" }}>Fechamento por Semana</h2>
 
@@ -3132,7 +3112,7 @@ function Caminhao() {
               <div style={{ ...estiloFormulario, marginTop: "16px" }}>
                 <h3>Novo Lançamento</h3>
 
-                <div style={estiloCampos}>
+                <div style={estiloCampos} className="caminhao-campos">
                   <Campo
                     titulo="Data"
                     type="date"
@@ -3163,7 +3143,7 @@ function Caminhao() {
                   />
                 </div>
 
-                <div style={estiloAcoesFormulario}>
+                <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
                   <button
                     style={estiloBotaoDourado}
                     onClick={adicionarIcmsRegistro}
@@ -3248,7 +3228,7 @@ function Caminhao() {
               <div style={{ ...estiloFormulario, marginTop: "16px" }}>
                 <h3>Editar Dados do Motorista</h3>
 
-                <div style={estiloCampos}>
+                <div style={estiloCampos} className="caminhao-campos">
                   <Campo
                     titulo="CNH"
                     value={dadosDocumentacao.cnh}
@@ -3283,7 +3263,7 @@ function Caminhao() {
                   />
                 </div>
 
-                <div style={estiloAcoesFormulario}>
+                <div style={estiloAcoesFormulario} className="caminhao-formulario-acoes">
                   <button
                     style={estiloBotaoCancelar}
                     onClick={() => setEditandoDocumentacao(false)}
@@ -3301,7 +3281,7 @@ function Caminhao() {
               </div>
             ) : (
               <div style={{ ...estiloCabecalhoTitulo, marginTop: "16px" }}>
-                <div style={estiloInformacoes}>
+                <div style={estiloInformacoes} className="caminhao-informacoes">
                   <div>
                     <p style={estiloLegenda}>CNH</p>
                     <strong>{caminhao.motorista_cnh || "-"}</strong>
@@ -3462,12 +3442,6 @@ const estiloLinkBreadcrumb = {
   textDecoration: "underline",
 };
 
-const estiloGridKpis = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-  gap: "16px",
-  marginBottom: "24px",
-};
 
 const estiloBotaoEditar = {
   background: "white",

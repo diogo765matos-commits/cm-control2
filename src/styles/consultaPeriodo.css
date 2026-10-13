@@ -7,7 +7,7 @@
 .consulta-filtros button, .consulta-acoes button { min-height: 40px; border: 0; border-radius: 8px; padding: 9px 16px; color: white; background: var(--cor-primaria); font-weight: 600; cursor: pointer; }
 .consulta-filtros button:disabled { opacity: .65; cursor: wait; }
 .consulta-acoes { align-items: center; }
-.consulta-acoes .consulta-botao-secundario { color: var(--cor-texto); background: #e9edf3; }
+.consulta-acoes .consulta-botao-secundario { color: var(--cor-texto); background: #efede7; }
 .consulta-erro { padding: 12px 14px; border-radius: 8px; color: #b42318; background: #fef3f2; }
 .consulta-periodo-titulo { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .consulta-periodo-titulo h2 { font-size: 19px; }
@@ -17,11 +17,11 @@
 .consulta-resumo-card span, .consulta-vazio { color: var(--cor-texto-secundario); font-size: 13px; }
 .consulta-resumo-card strong { font-size: 19px; }
 .consulta-card h2 { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; font-size: 17px; }
-.consulta-contagem { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; border-radius: 12px; padding: 0 7px; color: #166534; background: #dcfce7; font-size: 12px; }
+.consulta-contagem { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; border-radius: 12px; padding: 0 7px; color: var(--cor-primaria-escura); background: var(--cor-primaria-clara); font-size: 12px; }
 .consulta-tabela-scroll { overflow-x: auto; }
 .consulta-tabela { width: 100%; border-collapse: collapse; min-width: 620px; }
 .consulta-tabela th, .consulta-tabela td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-align: left; white-space: nowrap; font-size: 13px; }
-.consulta-tabela th { color: var(--cor-texto-secundario); background: #f9fafb; font-size: 11px; text-transform: uppercase; }
+.consulta-tabela th { color: var(--cor-texto-secundario); background: var(--cor-superficie); font-size: 11px; text-transform: uppercase; }
 .consulta-vazio { padding: 10px 0 2px; }
 .consulta-selecao-escopo { display: flex; align-items: end; flex-wrap: wrap; gap: 14px; padding: 16px; border: 1px solid var(--cor-borda); border-radius: var(--raio); background: var(--cor-card); }
 .consulta-selecao-escopo label { display: flex; min-width: 220px; flex: 1 1 220px; flex-direction: column; gap: 6px; color: var(--cor-texto-secundario); font-size: 13px; font-weight: 600; }
@@ -29,26 +29,26 @@
 .consulta-selecao-escopo .consulta-acoes { flex: 1 1 100%; }
 .consulta-selecao-escopo button:disabled { opacity: .55; cursor: not-allowed; }
 .consulta-periodo-titulo p { margin-top: 5px; color: var(--cor-texto-secundario); font-size: 13px; }
-.consulta-relatorio-legenda { padding: 12px 14px; border-left: 3px solid var(--cor-primaria); border-radius: 6px; color: var(--cor-texto-secundario); background: #f1f5f9; font-size: 13px; }
-.consulta-frota-grupo { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--cor-borda); border-radius: var(--raio); background: #f8fafc; }
+.consulta-relatorio-legenda { padding: 12px 14px; border-left: 3px solid var(--cor-primaria); border-radius: 6px; color: var(--cor-texto-secundario); background: var(--cor-superficie); font-size: 13px; }
+.consulta-frota-grupo { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--cor-borda); border-radius: var(--raio); background: var(--cor-superficie); }
 .consulta-frota-grupo > header, .consulta-subfrota > header, .consulta-despesas-gerais > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .consulta-frota-grupo > header h2 { margin: 0; font-size: 19px; }
 .consulta-frota-grupo > header p, .consulta-subfrota > header p { color: var(--cor-texto-secundario); font-size: 12px; }
-.consulta-subfrota { display: flex; flex-direction: column; gap: 14px; margin: 4px 0 0 14px; padding: 16px; border-left: 3px solid #d97706; border-radius: 8px; background: #fffaf0; }
+.consulta-subfrota { display: flex; flex-direction: column; gap: 14px; margin: 4px 0 0 14px; padding: 16px; border-left: 3px solid #9b7423; border-radius: 8px; background: #fbf7ec; }
 .consulta-subfrota > header h3 { margin: 0; font-size: 16px; }
 .consulta-caminhao-card { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid var(--cor-borda); border-radius: 10px; background: var(--cor-card); }
 .consulta-caminhao-cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .consulta-caminhao-cabecalho h3 { margin: 0 0 5px; font-size: 16px; }
 .consulta-caminhao-cabecalho p { color: var(--cor-texto-secundario); font-size: 13px; }
-.consulta-frota-etiqueta { display: inline-flex; flex: 0 0 auto; align-items: center; border-radius: 999px; padding: 6px 10px; color: #1d4ed8; background: #dbeafe; font-size: 11px; font-weight: 700; }
-.consulta-frota-etiqueta.bagaco { color: #92400e; background: #fef3c7; }
+.consulta-frota-etiqueta { display: inline-flex; flex: 0 0 auto; align-items: center; border-radius: 999px; padding: 6px 10px; color: var(--cor-primaria-escura); background: var(--cor-primaria-clara); font-size: 11px; font-weight: 700; }
+.consulta-frota-etiqueta.bagaco { color: #725516; background: #f5edda; }
 .consulta-caminhao-totais { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; }
-.consulta-caminhao-totais .consulta-resumo-card { min-width: 0; padding: 10px 12px; background: #f8fafc; }
+.consulta-caminhao-totais .consulta-resumo-card { min-width: 0; padding: 10px 12px; background: var(--cor-superficie); }
 .consulta-caminhao-totais .consulta-resumo-card span { font-size: 11px; }
 .consulta-caminhao-totais .consulta-resumo-card strong { font-size: 15px; }
 .consulta-caminhao-registros { display: flex; flex-direction: column; gap: 12px; }
 .consulta-registros { min-width: 0; border: 1px solid var(--cor-borda); border-radius: 8px; overflow: hidden; }
-.consulta-registros h4 { display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: var(--cor-texto); background: #f8fafc; font-size: 13px; }
+.consulta-registros h4 { display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: var(--cor-texto); background: var(--cor-superficie); font-size: 13px; }
 .consulta-registros .consulta-tabela-scroll { padding: 0 10px 6px; }
 .consulta-despesas-gerais { display: flex; flex-direction: column; gap: 10px; }
 .consulta-despesas-gerais > header h2 { margin: 0; font-size: 17px; }

@@ -1,179 +1,33 @@
-.topo{
-
-display:flex;
-
-justify-content:space-between;
-
-align-items:center;
-
-margin-bottom:40px;
-
-}
-
-.novo{
-
-background:#D4A019;
-
-border:none;
-
-padding:15px 25px;
-
-font-size:16px;
-
-border-radius:10px;
-
-cursor:pointer;
-
-font-weight:bold;
-
-}
-
-.grid{
-
-display:grid;
-
-grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
-
-gap:25px;
-
-}
-
-.cardCaminhao{
-
-background:white;
-
-padding:25px;
-
-border-radius:15px;
-
-box-shadow:0 5px 20px rgba(0,0,0,.08);
-
-transition:.3s;
-
-}
-
-.cardCaminhao:hover{
-
-transform:translateY(-6px);
-
-}
-
-.cardCaminhao h2{
-
-margin-bottom:20px;
-
-}
-
-.cardCaminhao p{
-
-margin-bottom:10px;
-
-}
-
-.cardCaminhao button{
-
-margin-top:25px;
-
-background:#111;
-
-color:white;
-
-border:none;
-
-padding:12px 20px;
-
-border-radius:8px;
-
-cursor:pointer;
-
-}
-
-.cardCaminhao button:hover{
-
-background:#D4A019;
-
-color:black;
-
-}
-
-.secao-frota{
-
-margin-bottom:50px;
-
-}
-
-.secao-frota-vazia{
-
-color:#777;
-
-background:#fafafa;
-
-border:1px dashed #ccc;
-
-border-radius:12px;
-
-padding:30px;
-
-text-align:center;
-
-}
-
-.form-novo-caminhao{
-
-background:#f7f7f7;
-
-padding:25px;
-
-border-radius:12px;
-
-margin-bottom:30px;
-
-display:flex;
-
-flex-direction:column;
-
-gap:15px;
-
-max-width:420px;
-
-}
-
-.form-novo-caminhao h2{
-
-margin-bottom:5px;
-
-}
-
-.form-novo-caminhao input{
-
-padding:12px;
-
-border:1px solid #ccc;
-
-border-radius:8px;
-
-font-size:15px;
-
-background:white;
-
-width:100%;
-
-}
-
-.form-novo-caminhao button{
-
-background:#D4A019;
-
-color:#111;
-
-border:none;
-
-padding:12px 20px;
-
-border-radius:8px;
-
-cursor:pointer;
-
-font-weight:bold;
-
-}
+.frota-page { min-width: 0; }
+.frota-secao { margin-bottom: 28px; }
+.frota-secao-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.frota-secao-titulo { font-size: 19px; letter-spacing: -.02em; }
+.frota-legenda { color: var(--cor-texto-secundario); font-size: 13px; margin-top: 5px; }
+.frota-acoes, .frota-card-acoes, .frota-formulario-acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+.frota-page button { min-height: 42px; border-radius: 9px; padding: 10px 16px; font-size: 13px; font-weight: 650; cursor: pointer; transition: background .15s, border-color .15s; }
+.frota-botao-primario { border: 1px solid var(--cor-primaria); background: var(--cor-primaria); color: white; }
+.frota-botao-primario:hover { background: var(--cor-primaria-escura); }
+.frota-botao-secundario { border: 1px solid var(--cor-borda); background: white; color: var(--cor-texto); }
+.frota-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 16px; }
+.frota-card { display: flex; flex-direction: column; gap: 15px; min-width: 0; padding: 20px; background: white; border: 1px solid var(--cor-borda); border-radius: 14px; box-shadow: var(--sombra-card); }
+.frota-card:hover { border-color: #cbb98d; }
+.frota-card-cabecalho { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--cor-borda); }
+.frota-placa { color: var(--cor-texto); font-size: 21px; letter-spacing: .045em; overflow-wrap: anywhere; }
+.frota-status { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; background: var(--cor-sucesso-clara); color: var(--cor-sucesso); font-size: 11px; font-weight: 700; padding: 5px 9px; }
+.frota-status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.frota-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.frota-info-rotulo { color: var(--cor-texto-secundario); font-size: 11px; text-transform: uppercase; letter-spacing: .055em; }
+.frota-info strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.frota-card-acoes { margin-top: auto; padding-top: 4px; }
+.frota-botao-abrir { flex: 1; border: 1px solid var(--cor-sidebar); background: var(--cor-sidebar); color: white; }
+.frota-botao-abrir:hover { background: var(--cor-sidebar-hover); }
+.frota-botao-excluir { border: 1px solid var(--cor-borda); background: white; color: var(--cor-perigo); }
+.frota-botao-excluir:hover { background: var(--cor-perigo-clara); border-color: #e8bab5; }
+.frota-formulario { background: white; border: 1px solid var(--cor-borda); border-top: 3px solid var(--cor-dourado); padding: 20px; border-radius: 12px; margin-bottom: 18px; }
+.frota-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.frota-input { min-width: 0; width: 100%; padding: 12px; border: 1px solid var(--cor-borda); border-radius: 8px; font-size: 14px; color: var(--cor-texto); background: var(--cor-superficie); }
+.frota-formulario-acoes { justify-content: flex-end; margin-top: 16px; }
+.frota-vazio { padding: 32px 20px; border: 1px dashed #cec7b7; border-radius: 12px; background: var(--cor-superficie); color: var(--cor-texto-secundario); text-align: center; }
+.frota-vazio h3 { font-size: 14px; font-weight: 500; }
+.frota-page button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 640px) { .frota-campos { grid-template-columns: 1fr; } .frota-card { padding: 18px; } .frota-secao-cabecalho { align-items: flex-start; } }

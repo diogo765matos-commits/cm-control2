@@ -2,7 +2,7 @@
   width: 260px;
   min-height: 100vh;
   background: var(--cor-sidebar);
-  color: #cbd5e1;
+  color: #dedbd4;
   display: flex;
   flex-direction: column;
   padding: 24px 18px;
@@ -32,7 +32,7 @@
 }
 
 .sidebar-marca span {
-  color: #7c8aa5;
+  color: #b8b2a5;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -50,7 +50,7 @@
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: #b8c2d6;
+  color: #d2cdc2;
   padding: 12px 14px;
   border-radius: var(--raio-pequeno);
   transition: background 0.15s, color 0.15s;
@@ -69,8 +69,8 @@
 }
 
 .menu-link.active {
-  background: var(--cor-primaria);
-  color: white;
+  background: var(--cor-dourado);
+  color: #171717;
   font-weight: 600;
 }
 
@@ -113,7 +113,7 @@
 
 .sidebar-usuario-info span {
   display: block;
-  color: #7c8aa5;
+  color: #b8b2a5;
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
@@ -199,7 +199,7 @@
     right: 16px;
     background: transparent;
     border: none;
-    color: #b8c2d6;
+    color: #d2cdc2;
     font-size: 20px;
     cursor: pointer;
     padding: 4px 8px;
@@ -209,7 +209,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(23, 23, 23, 0.5);
     z-index: 105;
   }
 }

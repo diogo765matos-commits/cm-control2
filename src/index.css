@@ -1,17 +1,21 @@
 :root {
-  --cor-fundo: #f3f5f9;
-  --cor-sidebar: #0f1c30;
-  --cor-sidebar-hover: #182a45;
-  --cor-primaria: #16a34a;
-  --cor-primaria-escura: #15803d;
-  --cor-primaria-clara: #dcfce7;
-  --cor-texto: #111827;
-  --cor-texto-secundario: #6b7280;
-  --cor-borda: #e7e9ee;
+  --cor-fundo: #f6f5f2;
+  --cor-sidebar: #171717;
+  --cor-sidebar-hover: #2b2925;
+  --cor-primaria: #82621f;
+  --cor-primaria-escura: #654a13;
+  --cor-primaria-clara: #f5edda;
+  --cor-dourado: #d4af53;
+  --cor-texto: #232323;
+  --cor-texto-secundario: #68645c;
+  --cor-borda: #e4e0d7;
   --cor-card: #ffffff;
-  --cor-perigo: #dc2626;
-  --cor-perigo-clara: #fee2e2;
-  --sombra-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px rgba(16, 24, 40, 0.06);
+  --cor-superficie: #faf9f6;
+  --cor-perigo: #b42318;
+  --cor-perigo-clara: #fef3f2;
+  --cor-sucesso: #397151;
+  --cor-sucesso-clara: #edf5ef;
+  --sombra-card: 0 1px 2px rgba(28, 25, 18, .03), 0 4px 18px rgba(28, 25, 18, .045);
   --raio: 14px;
   --raio-pequeno: 10px;
 }
@@ -88,3 +92,9 @@ button {
 table {
   font-family: inherit;
 }
+
+:where(button, a, input, select, summary):focus-visible { outline: 3px solid var(--cor-primaria) !important; outline-offset: 3px; }
+input, select { accent-color: var(--cor-primaria); }
+::selection { background: var(--cor-primaria-clara); color: var(--cor-texto); }
+
+.sidebar :focus-visible, .topo-mobile :focus-visible { outline-color: var(--cor-dourado) !important; }

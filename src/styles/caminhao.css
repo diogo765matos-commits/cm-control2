@@ -21,7 +21,7 @@
   border: 1px solid var(--cor-borda);
   border-radius: 999px;
   padding: 5px 11px;
-  background: #f8fafc;
+  background: var(--cor-superficie);
   color: var(--cor-texto-secundario);
   font-size: 13px;
   font-weight: 700;
@@ -129,9 +129,90 @@
     border: 0;
     border-radius: 6px;
     padding: 8px 11px;
-    background: #dc3545;
+    background: var(--cor-perigo);
     color: white;
     cursor: pointer;
     font-weight: 700;
   }
+}
+
+/* Layout scoped to the truck page: no shared grid or column rules. */
+.caminhao-page { min-width: 0; }
+.caminhao-page .caminhao-page-header { margin-bottom: 16px !important; align-items: center !important; }
+.caminhao-page-header > div:first-child { min-width: 0; }
+.caminhao-page-header h1 { font-size: 25px !important; overflow-wrap: anywhere; }
+.caminhao-page-header > div:last-child { justify-content: flex-end; }
+.caminhao-page .caminhao-identificacao-card { padding: 16px 20px !important; margin-bottom: 20px; border: 1px solid var(--cor-borda); box-shadow: var(--sombra-card) !important; }
+.caminhao-page .caminhao-identificacao-dados { gap: 12px 24px; font-size: 14px; }
+.caminhao-identificacao-dados > span > strong { color: var(--cor-texto-secundario); font-size: 12px; font-weight: 500; }
+.caminhao-page .caminhao-frota-badge { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); border-color: #e6d8b6; font-size: 11px; }
+.caminhao-page .caminhao-conteudo { min-width: 0; padding: 22px !important; border: 1px solid var(--cor-borda); border-radius: 14px !important; box-shadow: var(--sombra-card) !important; }
+.caminhao-page .caminhao-abas { gap: 4px !important; margin-bottom: 24px !important; border-color: var(--cor-borda) !important; }
+.caminhao-page .caminhao-abas > button { padding: 12px 14px !important; font-size: 13px !important; min-height: 44px; }
+.caminhao-abas > button[aria-pressed="true"] { background: var(--cor-primaria-clara) !important; border-radius: 8px 8px 0 0; }
+.caminhao-page .caminhao-cabecalho-secao { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px !important; margin-bottom: 18px !important; min-width: 0; width: 100%; }
+.caminhao-cabecalho-secao > div { min-width: 0; }
+.caminhao-cabecalho-secao h2, .caminhao-financeiro > h2 { font-size: 19px; letter-spacing: -.02em; }
+.caminhao-cabecalho-secao p { font-size: 13px; color: var(--cor-texto-secundario) !important; }
+.caminhao-page button { min-height: 40px; }
+.caminhao-page .caminhao-lista-semanas { width: 100%; gap: 10px !important; }
+.caminhao-page .caminhao-semana { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 20px !important; width: 100%; padding: 15px 18px !important; border: 1px solid var(--cor-borda); border-radius: 11px; background: white; box-shadow: 0 1px 3px rgba(28,25,18,.03); }
+.caminhao-page .caminhao-semana:hover { border-color: #cbb98d; }
+.caminhao-semana > div { min-width: 0; }
+.caminhao-semana > div:last-child { flex-wrap: wrap; justify-content: flex-end; }
+.caminhao-page .caminhao-semana-info { min-width: 0 !important; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 3px 20px; }
+.caminhao-semana-info > p:first-child { grid-column: 1; margin: 0 !important; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.caminhao-semana-info > h3 { grid-column: 1; font-size: 15px; font-weight: 650; }
+.caminhao-page .caminhao-quantidade { grid-column: 2; grid-row: 1 / span 2; margin: 0 !important; font-size: 12px; border-radius: 999px; padding: 6px 10px; background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); white-space: nowrap; }
+.caminhao-page .caminhao-semana-inline { margin-top: 10px; }
+.caminhao-semana-inline > h3 { grid-column: 1; font-size: 15px; }
+.caminhao-semana-inline > p { grid-column: 1; font-size: 12px; margin: 0 !important; }
+.caminhao-semana-inline > h3 ~ div { grid-column: 2; grid-row: 1 / span 2; }
+.caminhao-semana-inline strong { font-size: 14px; }
+.caminhao-semana-inline p { font-size: 12px; color: var(--cor-texto-secundario); }
+.caminhao-semana button { font-size: 12px; padding: 9px 13px !important; white-space: nowrap; }
+.caminhao-page .caminhao-formulario { padding: 18px !important; background: var(--cor-superficie) !important; border: 1px solid var(--cor-borda); margin-bottom: 18px !important; }
+.caminhao-page .caminhao-campos { gap: 14px !important; margin-top: 14px !important; }
+.caminhao-campos > label { flex: 1 1 180px; min-width: 0; }
+.caminhao-page input, .caminhao-page select { min-width: 0; max-width: 100%; color: var(--cor-texto); }
+.caminhao-page .caminhao-formulario-acoes { gap: 10px; flex-wrap: wrap; }
+.caminhao-page .caminhao-editar-semana { flex-wrap: wrap; padding: 16px !important; background: var(--cor-superficie); }
+.caminhao-page .caminhao-informacoes { gap: 20px !important; flex-wrap: wrap; margin: 16px 0 !important; }
+.caminhao-informacoes > div { min-width: 150px; }
+.caminhao-financeiro > p { font-size: 13px; margin: 6px 0 18px !important; }
+.caminhao-financeiro-principais { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 18px 0 24px; }
+.caminhao-financeiro-secundarios { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 12px 0 28px; }
+.caminhao-financeiro-subtitulo { font-size: 13px; color: var(--cor-texto-secundario); font-weight: 650; }
+.caminhao-financeiro .kpi-card { position: relative; align-items: flex-start !important; flex-direction: column; gap: 14px !important; padding: 18px !important; border: 1px solid var(--cor-borda); box-shadow: none !important; overflow: visible; }
+.caminhao-financeiro .kpi-icone { width: 32px !important; height: 32px !important; font-size: 16px !important; border-radius: 9px !important; }
+.caminhao-financeiro .kpi-textos { width: 100%; gap: 6px !important; }
+.caminhao-financeiro .kpi-valor { display: block; max-width: 100%; font-size: clamp(21px, 1.8vw, 27px) !important; line-height: 1.2; letter-spacing: -.035em; font-variant-numeric: tabular-nums; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; }
+.caminhao-financeiro .kpi-rotulo { font-size: 10px !important; line-height: 1.5; }
+.caminhao-financeiro .kpi-legenda { font-size: 11px !important; line-height: 1.5; }
+.caminhao-financeiro-principais > .kpi-card { border-top: 3px solid var(--cor-dourado); }
+.caminhao-financeiro-principais > .kpi-card:first-child { background: linear-gradient(135deg, #fbf7ec, #fff) !important; }
+.caminhao-financeiro-principais > .kpi-card:last-child:not(:first-child) { background: var(--cor-sidebar) !important; border-color: var(--cor-sidebar); border-top-color: var(--cor-dourado); }
+.caminhao-financeiro-principais > .kpi-card:last-child:not(:first-child) .kpi-valor { color: white !important; }
+.caminhao-financeiro-principais > .kpi-card:last-child:not(:first-child) :is(.kpi-rotulo, .kpi-legenda) { color: #d8d4cb !important; }
+.caminhao-financeiro-secundarios .kpi-card { flex-direction: row; gap: 12px !important; background: var(--cor-superficie) !important; }
+.caminhao-financeiro-secundarios .kpi-valor { font-size: 21px !important; }
+.caminhao-financeiro-principais > .kpi-card:only-child,
+.caminhao-financeiro-secundarios > .kpi-card:only-child { grid-column: 1 / -1; flex-direction: row; }
+@media (max-width: 1050px) { .caminhao-page-header > div:last-child { justify-content: flex-start; } .caminhao-financeiro-secundarios { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 760px) {
+  .caminhao-page .caminhao-conteudo { padding: 16px !important; }
+  .caminhao-page .caminhao-identificacao-card { padding: 14px 16px !important; }
+  .caminhao-page .caminhao-semana { grid-template-columns: 1fr; gap: 12px !important; }
+  .caminhao-semana > div:last-child { justify-content: flex-start; }
+  .caminhao-semana-inline > h3 ~ div { grid-column: 1; grid-row: auto; }
+  .caminhao-financeiro-principais { grid-template-columns: 1fr; }
+  .caminhao-financeiro-principais .kpi-card { flex-direction: row; }
+  .caminhao-cabecalho-secao > button { max-width: 100%; }
+}
+@media (max-width: 520px) {
+  .caminhao-financeiro-secundarios { grid-template-columns: 1fr; }
+  .caminhao-page .caminhao-abas > button { padding: 10px !important; font-size: 12px !important; }
+  .caminhao-page-header > div:last-child { width: 100%; }
+  .caminhao-page .caminhao-semana-info { grid-template-columns: 1fr; }
+  .caminhao-page .caminhao-quantidade { grid-column: 1; grid-row: auto; justify-self: start; }
 }

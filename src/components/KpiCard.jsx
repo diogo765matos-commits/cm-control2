@@ -5,8 +5,9 @@ import { CORES_KPI } from "./coresKpi";
 
 function KpiCard({ icone, cor = CORES_KPI.verde, rotulo, valor, legenda }) {
   return (
-    <div style={estiloCard}>
+    <div style={estiloCard} className="kpi-card">
       <div
+        className="kpi-icone"
         style={{
           ...estiloIcone,
           background: cor.fundo,
@@ -16,10 +17,10 @@ function KpiCard({ icone, cor = CORES_KPI.verde, rotulo, valor, legenda }) {
         {icone}
       </div>
 
-      <div style={estiloTextos}>
-        <span style={estiloRotulo}>{rotulo}</span>
-        <strong style={estiloValor}>{valor}</strong>
-        {legenda && <span style={estiloLegenda}>{legenda}</span>}
+      <div style={estiloTextos} className="kpi-textos">
+        <span style={estiloRotulo} className="kpi-rotulo">{rotulo}</span>
+        <strong style={estiloValor} className="kpi-valor">{valor}</strong>
+        {legenda && <span style={estiloLegenda} className="kpi-legenda">{legenda}</span>}
       </div>
     </div>
   );

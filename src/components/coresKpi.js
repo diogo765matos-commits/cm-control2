@@ -1,8 +1,8 @@
 export const CORES_KPI = {
-  verde: { fundo: "#dcfce7", icone: "#16a34a" },
-  azul: { fundo: "#dbeafe", icone: "#2563eb" },
-  roxo: { fundo: "#ede9fe", icone: "#7c3aed" },
-  laranja: { fundo: "#ffedd5", icone: "#ea580c" },
-  dourado: { fundo: "#fef3c7", icone: "#b45309" },
-  vermelho: { fundo: "#fee2e2", icone: "#dc2626" },
+  verde: { fundo: "#f5edda", icone: "#82621f" },
+  azul: { fundo: "#eeede9", icone: "#45433e" },
+  roxo: { fundo: "#f1eee6", icone: "#796745" },
+  laranja: { fundo: "#fbf0df", icone: "#8b5b21" },
+  dourado: { fundo: "#f5edda", icone: "#82621f" },
+  vermelho: { fundo: "#fef3f2", icone: "#b42318" },
 };

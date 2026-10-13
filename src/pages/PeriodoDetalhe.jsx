@@ -233,11 +233,11 @@ function PeriodoDetalhe() {
             valorTotal={custoTotal}
             formatarValor={formatarMoeda}
             segmentos={[
-              { nome: "Combustível", valor: totalCombustivel, cor: "#2563eb" },
+              { nome: "Combustível", valor: totalCombustivel, cor: "#82621f" },
               {
                 nome: "Despesas Extras",
                 valor: totalDespesasExtras,
-                cor: "#16a34a",
+                cor: "#397151",
               },
             ]}
           />
@@ -254,16 +254,16 @@ function PeriodoDetalhe() {
         ) : (
           <>
             <div style={estiloResumoDetalhe}>
-              <div style={{ ...estiloCardResumoDetalhe, borderColor: "#16a34a" }}>
+              <div style={{ ...estiloCardResumoDetalhe, borderColor: "#397151" }}>
                 <span style={estiloLabelResumoDetalhe}>Valor Fiscal Total</span>
-                <strong style={{ color: "#16a34a" }}>
+                <strong style={{ color: "#397151" }}>
                   {formatarMoeda(totalValorFiscal)}
                 </strong>
               </div>
 
-              <div style={{ ...estiloCardResumoDetalhe, borderColor: "#2563eb" }}>
+              <div style={{ ...estiloCardResumoDetalhe, borderColor: "#82621f" }}>
                 <span style={estiloLabelResumoDetalhe}>Complemento Total</span>
-                <strong style={{ color: "#2563eb" }}>
+                <strong style={{ color: "#82621f" }}>
                   {formatarMoeda(totalComplemento)}
                 </strong>
               </div>

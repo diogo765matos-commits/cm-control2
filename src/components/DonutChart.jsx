@@ -19,7 +19,7 @@ function DonutChart({ segmentos, valorTotal, formatarValor }) {
               cx={0}
               cy={0}
               fill="transparent"
-              stroke="#eef0f4"
+              stroke="#e4e0d7"
               strokeWidth={espessura}
             />
           ) : (
@@ -49,10 +49,10 @@ function DonutChart({ segmentos, valorTotal, formatarValor }) {
           )}
         </g>
 
-        <text x="100" y="96" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#111827">
+        <text x="100" y="96" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#232323">
           {formatarValor(valorTotal)}
         </text>
-        <text x="100" y="116" textAnchor="middle" fontSize="11" fill="#6b7280">
+        <text x="100" y="116" textAnchor="middle" fontSize="11" fill="#68645c">
           Total
         </text>
       </svg>

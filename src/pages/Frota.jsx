@@ -7,6 +7,7 @@ import {
   FROTAS,
 } from "../data/caminhoes";
 import PageHeader from "../components/PageHeader";
+import "../styles/frota.css";
 
 function Frota() {
   const [caminhoes, setCaminhoes] = useState([]);
@@ -82,7 +83,7 @@ function Frota() {
   }
 
   return (
-    <div>
+    <div className="frota-page">
       <PageHeader
         titulo="Frota"
         subtitulo={`${caminhoes.length} caminhão(ões) cadastrado(s) ao todo.`}
@@ -138,19 +139,19 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
   }
 
   return (
-    <section style={estiloSecao}>
-      <div style={estiloTopoSecao}>
+    <section className="frota-secao">
+      <div className="frota-secao-cabecalho">
         <div>
-          <h2 style={estiloTituloSecao}>{titulo}</h2>
-          <p style={estiloLegenda}>
+          <h2 className="frota-secao-titulo">{titulo}</h2>
+          <p className="frota-legenda">
             {caminhoes.length}{" "}
             {caminhoes.length === 1 ? "caminhão" : "caminhões"}
           </p>
         </div>
 
-        <div style={estiloAcoesTopoSecao}>
+        <div className="frota-acoes">
           <button
-            style={estiloBotaoDourado}
+            className="frota-botao-primario"
             onClick={() => setMostrarFormulario(true)}
           >
             + Novo Caminhão
@@ -159,15 +160,16 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
       </div>
 
       {mostrarFormulario && (
-        <div style={estiloFormulario}>
+        <div className="frota-formulario">
           <h3 style={{ marginBottom: "6px" }}>Novo Caminhão — {titulo}</h3>
 
-          <div style={estiloCampos}>
+          <div className="frota-campos">
             <input
               type="text"
               placeholder="Modelo do caminhão"
+              aria-label="Modelo do caminhão"
               value={novoCaminhao.modelo}
-              style={estiloInput}
+              className="frota-input"
               onChange={(e) =>
                 setNovoCaminhao({ ...novoCaminhao, modelo: e.target.value })
               }
@@ -176,8 +178,9 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
             <input
               type="text"
               placeholder="Placa"
+              aria-label="Placa"
               value={novoCaminhao.placa}
-              style={estiloInput}
+              className="frota-input"
               onChange={(e) =>
                 setNovoCaminhao({ ...novoCaminhao, placa: e.target.value })
               }
@@ -186,8 +189,9 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
             <input
               type="text"
               placeholder="Motorista"
+              aria-label="Motorista"
               value={novoCaminhao.motorista}
-              style={estiloInput}
+              className="frota-input"
               onChange={(e) =>
                 setNovoCaminhao({
                   ...novoCaminhao,
@@ -197,11 +201,11 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
             />
           </div>
 
-          <div style={estiloAcoesFormulario}>
+          <div className="frota-formulario-acoes">
             <button
               type="button"
               onClick={() => setMostrarFormulario(false)}
-              style={estiloBotaoCancelar}
+              className="frota-botao-secundario"
             >
               Cancelar
             </button>
@@ -210,7 +214,7 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
               type="button"
               onClick={salvar}
               disabled={salvando}
-              style={estiloBotaoDourado}
+              className="frota-botao-primario"
             >
               {salvando ? "Salvando..." : "Salvar Caminhão"}
             </button>
@@ -219,31 +223,35 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
       )}
 
       {caminhoes.length === 0 ? (
-        <div style={estiloVazio}>
+        <div className="frota-vazio">
           <h3>Nenhum caminhão cadastrado nesta frota ainda.</h3>
         </div>
       ) : (
-        <div style={estiloGrid}>
+        <div className="frota-grid">
           {caminhoes.map((caminhao) => (
-            <div style={estiloCardCaminhao} key={caminhao.id}>
-              <div style={estiloTopoCard}>
-                <h3 style={estiloModelo}>🚛 {caminhao.modelo}</h3>
-                <span style={estiloBadge}>Ativo</span>
+            <div className="frota-card" key={caminhao.id}>
+              <div className="frota-card-cabecalho">
+                <div>
+                  <span className="frota-info-rotulo">Placa</span>
+                  <h3 className="frota-placa">{caminhao.placa}</h3>
+                </div>
+                <span className="frota-status">Ativo</span>
               </div>
 
-              <div style={estiloInfoLinha}>
-                <span style={estiloInfoLabel}>Placa</span>
-                <strong>{caminhao.placa}</strong>
+              <div className="frota-info">
+                <span className="frota-info-rotulo">Modelo</span>
+                <strong>{caminhao.modelo}</strong>
               </div>
 
-              <div style={estiloInfoLinha}>
-                <span style={estiloInfoLabel}>Motorista</span>
+              <div className="frota-info">
+                <span className="frota-info-rotulo">Motorista</span>
                 <strong>{caminhao.motorista}</strong>
               </div>
 
-              <div style={estiloAcoesCard}>
+              <div className="frota-card-acoes">
                 <button
-                  style={estiloBotaoEscuro}
+                  className="frota-botao-abrir"
+                  aria-label={`Abrir caminhão ${caminhao.placa}`}
                   onClick={() => navigate(`/caminhao/${caminhao.id}`)}
                 >
                   Abrir →
@@ -251,7 +259,8 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
 
                 <button
                   onClick={() => onExcluir(caminhao.id)}
-                  style={estiloBotaoExcluir}
+                  className="frota-botao-excluir"
+                  aria-label={`Excluir caminhão ${caminhao.placa}`}
                 >
                   🗑 Excluir
                 </button>
@@ -263,173 +272,5 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
     </section>
   );
 }
-
-const estiloSecao = {
-  background: "var(--cor-card)",
-  borderRadius: "var(--raio)",
-  boxShadow: "var(--sombra-card)",
-  padding: "26px",
-  marginBottom: "24px",
-};
-
-const estiloTopoSecao = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "16px",
-  marginBottom: "22px",
-  flexWrap: "wrap",
-};
-
-const estiloTituloSecao = {
-  fontSize: "18px",
-};
-
-const estiloAcoesTopoSecao = {
-  display: "flex",
-  gap: "10px",
-  flexWrap: "wrap",
-};
-
-const estiloLegenda = {
-  color: "var(--cor-texto-secundario)",
-  fontSize: "13px",
-  marginTop: "4px",
-};
-
-const estiloBotaoDourado = {
-  background: "var(--cor-primaria)",
-  color: "white",
-  border: "none",
-  padding: "12px 20px",
-  borderRadius: "var(--raio-pequeno)",
-  cursor: "pointer",
-  fontWeight: "bold",
-};
-
-const estiloBotaoCancelar = {
-  background: "#eee",
-  color: "#333",
-  border: "none",
-  padding: "12px 20px",
-  borderRadius: "var(--raio-pequeno)",
-  cursor: "pointer",
-};
-
-const estiloFormulario = {
-  background: "#f9fafb",
-  border: "1px solid var(--cor-borda)",
-  padding: "20px",
-  borderRadius: "var(--raio-pequeno)",
-  marginBottom: "22px",
-};
-
-const estiloCampos = {
-  display: "flex",
-  gap: "14px",
-  marginTop: "16px",
-  flexWrap: "wrap",
-};
-
-const estiloInput = {
-  flex: 1,
-  minWidth: "180px",
-  padding: "12px",
-  border: "1px solid var(--cor-borda)",
-  borderRadius: "var(--raio-pequeno)",
-  fontSize: "14px",
-  background: "white",
-};
-
-const estiloAcoesFormulario = {
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "10px",
-  marginTop: "18px",
-};
-
-const estiloVazio = {
-  textAlign: "center",
-  padding: "40px 20px",
-  background: "#fafafa",
-  border: "1px dashed #ccc",
-  borderRadius: "12px",
-  color: "#777",
-};
-
-const estiloGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-  gap: "16px",
-};
-
-const estiloCardCaminhao = {
-  border: "1px solid var(--cor-borda)",
-  borderRadius: "var(--raio-pequeno)",
-  padding: "18px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "10px",
-};
-
-const estiloTopoCard = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "10px",
-};
-
-const estiloModelo = {
-  fontSize: "16px",
-};
-
-const estiloBadge = {
-  background: "var(--cor-primaria-clara)",
-  color: "var(--cor-primaria-escura)",
-  fontSize: "11px",
-  fontWeight: "bold",
-  padding: "4px 10px",
-  borderRadius: "999px",
-  whiteSpace: "nowrap",
-};
-
-const estiloInfoLinha = {
-  display: "flex",
-  justifyContent: "space-between",
-  fontSize: "14px",
-  color: "var(--cor-texto)",
-};
-
-const estiloInfoLabel = {
-  color: "var(--cor-texto-secundario)",
-};
-
-const estiloAcoesCard = {
-  display: "flex",
-  gap: "8px",
-  marginTop: "8px",
-};
-
-const estiloBotaoEscuro = {
-  flex: 1,
-  background: "var(--cor-sidebar)",
-  color: "white",
-  border: "none",
-  padding: "10px 14px",
-  borderRadius: "var(--raio-pequeno)",
-  cursor: "pointer",
-  fontSize: "13px",
-};
-
-const estiloBotaoExcluir = {
-  background: "var(--cor-perigo-clara)",
-  color: "var(--cor-perigo)",
-  border: "none",
-  padding: "10px 14px",
-  borderRadius: "var(--raio-pequeno)",
-  cursor: "pointer",
-  fontSize: "13px",
-  whiteSpace: "nowrap",
-};
 
 export default Frota;

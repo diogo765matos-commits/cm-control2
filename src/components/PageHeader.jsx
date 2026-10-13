@@ -1,6 +1,6 @@
-function PageHeader({ breadcrumb, titulo, subtitulo, children }) {
+function PageHeader({ breadcrumb, titulo, subtitulo, children, className }) {
   return (
-    <div style={estiloHeader}>
+    <div style={estiloHeader} className={className}>
       <div>
         {breadcrumb && <div style={estiloBreadcrumb}>{breadcrumb}</div>}
         <h1 style={estiloTitulo}>{titulo}</h1>

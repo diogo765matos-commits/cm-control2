@@ -32,8 +32,8 @@
 }
 
 .dashboard-kpi {
-  --kpi-acento: #2563eb;
-  --kpi-fundo-icone: #eff6ff;
+  --kpi-acento: #9b7423;
+  --kpi-fundo-icone: #f5edda;
   position: relative;
   display: flex;
   min-width: 0;
@@ -43,7 +43,7 @@
   gap: 14px;
   overflow: hidden;
   padding: 20px;
-  border: 1px solid #e8edf4;
+  border: 1px solid var(--cor-borda);
   border-radius: 16px;
   background: var(--cor-card);
   box-shadow: var(--sombra-card);
@@ -64,23 +64,23 @@
 }
 
 .dashboard-kpi-volume {
-  --kpi-acento: #0f9f76;
-  --kpi-fundo-icone: #e8f8f2;
+  --kpi-acento: #45433e;
+  --kpi-fundo-icone: #eeede9;
 }
 
 .dashboard-kpi-bruto {
-  --kpi-acento: #2563eb;
-  --kpi-fundo-icone: #edf4ff;
+  --kpi-acento: #9b7423;
+  --kpi-fundo-icone: #f5edda;
 }
 
 .dashboard-kpi-viagens {
-  --kpi-acento: #7c3aed;
-  --kpi-fundo-icone: #f2edff;
+  --kpi-acento: #8c7952;
+  --kpi-fundo-icone: #f3f0e8;
 }
 
 .dashboard-kpi-motoristas {
-  --kpi-acento: #d97706;
-  --kpi-fundo-icone: #fff5e5;
+  --kpi-acento: #856c3c;
+  --kpi-fundo-icone: #f7f0df;
 }
 
 .dashboard-kpi-cabecalho {
@@ -107,7 +107,7 @@
 }
 
 .dashboard-kpi-titulo {
-  color: #596579;
+  color: var(--cor-texto-secundario);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.025em;
@@ -117,7 +117,7 @@
 .dashboard-kpi-valor {
   display: block;
   overflow-wrap: anywhere;
-  color: #172033;
+  color: var(--cor-texto);
   font-size: clamp(20px, 2vw, 27px);
   font-weight: 750;
   letter-spacing: -0.035em;
@@ -133,7 +133,7 @@
 
 .dashboard-producao {
   padding: 24px;
-  border: 1px solid #e8edf4;
+  border: 1px solid var(--cor-borda);
   border-radius: 18px;
   background: var(--cor-card);
   box-shadow: var(--sombra-card);
@@ -156,7 +156,7 @@
 }
 
 .dashboard-producao-cabecalho h2 {
-  color: #172033;
+  color: var(--cor-texto);
   font-size: 20px;
   line-height: 1.25;
 }
@@ -164,10 +164,10 @@
 .dashboard-periodo-chip {
   max-width: 100%;
   padding: 7px 11px;
-  border: 1px solid #dce8e2;
+  border: 1px solid #e6d8b6;
   border-radius: 999px;
-  background: #f3faf6;
-  color: #28704f;
+  background: #fbf7ec;
+  color: #725516;
   font-size: 11px;
   font-weight: 700;
   text-align: center;
@@ -179,9 +179,9 @@
   gap: 10px 18px;
   margin: 18px 0 20px;
   padding: 12px 14px;
-  border: 1px solid #edf0f5;
+  border: 1px solid var(--cor-borda);
   border-radius: 12px;
-  background: #fafbfd;
+  background: var(--cor-superficie);
 }
 
 .dashboard-legenda-frotas > span,
@@ -190,7 +190,7 @@
   min-width: 0;
   align-items: center;
   gap: 7px;
-  color: #465267;
+  color: var(--cor-texto-secundario);
   font-size: 11px;
   font-weight: 700;
 }
@@ -205,48 +205,48 @@
 }
 
 .frota-cm {
-  color: #2563eb;
+  color: #9b7423;
 }
 
 .frota-terceirizada {
-  color: #0f9f76;
+  color: #45433e;
 }
 
 .frota-bagaco {
-  color: #d97706;
+  color: #856c3c;
 }
 
 .dashboard-barra-preenchimento.frota-cm,
 .dashboard-frota-marcador.frota-cm {
-  background: #2563eb;
-  color: #2563eb;
+  background: #9b7423;
+  color: #9b7423;
 }
 
 .frota-cm > .dashboard-frota-marcador {
-  background: #2563eb;
-  color: #2563eb;
+  background: #9b7423;
+  color: #9b7423;
 }
 
 .dashboard-barra-preenchimento.frota-terceirizada,
 .dashboard-frota-marcador.frota-terceirizada {
-  background: #0f9f76;
-  color: #0f9f76;
+  background: #45433e;
+  color: #45433e;
 }
 
 .frota-terceirizada > .dashboard-frota-marcador {
-  background: #0f9f76;
-  color: #0f9f76;
+  background: #45433e;
+  color: #45433e;
 }
 
 .dashboard-barra-preenchimento.frota-bagaco,
 .dashboard-frota-marcador.frota-bagaco {
-  background: #d97706;
-  color: #d97706;
+  background: #856c3c;
+  color: #856c3c;
 }
 
 .frota-bagaco > .dashboard-frota-marcador {
-  background: #d97706;
-  color: #d97706;
+  background: #856c3c;
+  color: #856c3c;
 }
 
 .dashboard-medidas {
@@ -258,7 +258,7 @@
 .dashboard-medida {
   min-width: 0;
   padding: 16px 14px;
-  border: 1px solid #edf0f5;
+  border: 1px solid var(--cor-borda);
   border-radius: 14px;
   background: #fff;
 }
@@ -272,7 +272,7 @@
 }
 
 .dashboard-medida-cabecalho h3 {
-  color: #263247;
+  color: var(--cor-texto);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -281,8 +281,8 @@
   flex: 0 0 auto;
   padding: 4px 7px;
   border-radius: 7px;
-  background: #f2f5f9;
-  color: #667085;
+  background: #f0eeea;
+  color: var(--cor-texto-secundario);
   font-size: 10px;
   font-weight: 700;
 }
@@ -310,7 +310,7 @@
   height: 10px;
   overflow: hidden;
   border-radius: 999px;
-  background: #eef1f5;
+  background: #efede7;
 }
 
 .dashboard-barra-preenchimento {
@@ -322,7 +322,7 @@
 }
 
 .dashboard-barra-valor {
-  color: #263247;
+  color: var(--cor-texto);
   font-size: 10px;
   font-weight: 750;
   text-align: right;
@@ -336,10 +336,10 @@
   gap: 8px;
   margin-top: 14px;
   padding: 11px 13px;
-  border: 1px solid #f4e4c8;
+  border: 1px solid #e6d8b6;
   border-radius: 11px;
-  background: #fffaf1;
-  color: #70460d;
+  background: #fbf7ec;
+  color: #725516;
   font-size: 12px;
 }
 
@@ -354,7 +354,7 @@
 .dashboard-volume-bagaco small {
   flex-basis: 100%;
   padding-left: 17px;
-  color: #8b6b3c;
+  color: #75613c;
   font-size: 10px;
 }
 
