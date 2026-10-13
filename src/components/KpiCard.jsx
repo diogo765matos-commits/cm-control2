@@ -1,14 +1,7 @@
 // Card de indicador (KPI) usado no topo das páginas — mesmo componente
 // reaproveitado no Painel, na página do caminhão e em Despesas Extras.
 
-export const CORES_KPI = {
-  verde: { fundo: "#dcfce7", icone: "#16a34a" },
-  azul: { fundo: "#dbeafe", icone: "#2563eb" },
-  roxo: { fundo: "#ede9fe", icone: "#7c3aed" },
-  laranja: { fundo: "#ffedd5", icone: "#ea580c" },
-  dourado: { fundo: "#fef3c7", icone: "#b45309" },
-  vermelho: { fundo: "#fee2e2", icone: "#dc2626" },
-};
+import { CORES_KPI } from "./coresKpi";
 
 function KpiCard({ icone, cor = CORES_KPI.verde, rotulo, valor, legenda }) {
   return (

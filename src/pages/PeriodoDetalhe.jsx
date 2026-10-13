@@ -19,7 +19,8 @@ import {
   formatarNumero,
 } from "../utils/formatadores";
 import PageHeader from "../components/PageHeader";
-import KpiCard, { CORES_KPI } from "../components/KpiCard";
+import KpiCard from "../components/KpiCard";
+import { CORES_KPI } from "../components/coresKpi";
 import BarChart from "../components/BarChart";
 import DonutChart from "../components/DonutChart";
 
@@ -142,7 +143,6 @@ function PeriodoDetalhe() {
   }
 
   const totalViagens = viagens.length;
-  const volumeEntregueTotal = viagens.reduce((s, v) => s + v.volEntregue, 0);
   const receitaBrutaTotal = viagens.reduce((s, v) => s + v.valorFisico, 0);
   const pagamentoMotoristas = receitaBrutaTotal * PERCENTUAL_MOTORISTA;
   const gastos = totalCombustivel + totalDespesasExtras + pagamentoMotoristas;

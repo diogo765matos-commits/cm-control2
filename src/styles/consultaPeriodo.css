@@ -23,15 +23,63 @@
 .consulta-tabela th, .consulta-tabela td { padding: 10px 12px; border-bottom: 1px solid var(--cor-borda); text-align: left; white-space: nowrap; font-size: 13px; }
 .consulta-tabela th { color: var(--cor-texto-secundario); background: #f9fafb; font-size: 11px; text-transform: uppercase; }
 .consulta-vazio { padding: 10px 0 2px; }
+.consulta-selecao-escopo { display: flex; align-items: end; flex-wrap: wrap; gap: 14px; padding: 16px; border: 1px solid var(--cor-borda); border-radius: var(--raio); background: var(--cor-card); }
+.consulta-selecao-escopo label { display: flex; min-width: 220px; flex: 1 1 220px; flex-direction: column; gap: 6px; color: var(--cor-texto-secundario); font-size: 13px; font-weight: 600; }
+.consulta-selecao-escopo select { min-height: 40px; border: 1px solid var(--cor-borda); border-radius: 8px; padding: 8px 10px; color: var(--cor-texto); background: white; }
+.consulta-selecao-escopo .consulta-acoes { flex: 1 1 100%; }
+.consulta-selecao-escopo button:disabled { opacity: .55; cursor: not-allowed; }
+.consulta-periodo-titulo p { margin-top: 5px; color: var(--cor-texto-secundario); font-size: 13px; }
+.consulta-relatorio-legenda { padding: 12px 14px; border-left: 3px solid var(--cor-primaria); border-radius: 6px; color: var(--cor-texto-secundario); background: #f1f5f9; font-size: 13px; }
+.consulta-frota-grupo { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--cor-borda); border-radius: var(--raio); background: #f8fafc; }
+.consulta-frota-grupo > header, .consulta-subfrota > header, .consulta-despesas-gerais > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.consulta-frota-grupo > header h2 { margin: 0; font-size: 19px; }
+.consulta-frota-grupo > header p, .consulta-subfrota > header p { color: var(--cor-texto-secundario); font-size: 12px; }
+.consulta-subfrota { display: flex; flex-direction: column; gap: 14px; margin: 4px 0 0 14px; padding: 16px; border-left: 3px solid #d97706; border-radius: 8px; background: #fffaf0; }
+.consulta-subfrota > header h3 { margin: 0; font-size: 16px; }
+.consulta-caminhao-card { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid var(--cor-borda); border-radius: 10px; background: var(--cor-card); }
+.consulta-caminhao-cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.consulta-caminhao-cabecalho h3 { margin: 0 0 5px; font-size: 16px; }
+.consulta-caminhao-cabecalho p { color: var(--cor-texto-secundario); font-size: 13px; }
+.consulta-frota-etiqueta { display: inline-flex; flex: 0 0 auto; align-items: center; border-radius: 999px; padding: 6px 10px; color: #1d4ed8; background: #dbeafe; font-size: 11px; font-weight: 700; }
+.consulta-frota-etiqueta.bagaco { color: #92400e; background: #fef3c7; }
+.consulta-caminhao-totais { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; }
+.consulta-caminhao-totais .consulta-resumo-card { min-width: 0; padding: 10px 12px; background: #f8fafc; }
+.consulta-caminhao-totais .consulta-resumo-card span { font-size: 11px; }
+.consulta-caminhao-totais .consulta-resumo-card strong { font-size: 15px; }
+.consulta-caminhao-registros { display: flex; flex-direction: column; gap: 12px; }
+.consulta-registros { min-width: 0; border: 1px solid var(--cor-borda); border-radius: 8px; overflow: hidden; }
+.consulta-registros h4 { display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: var(--cor-texto); background: #f8fafc; font-size: 13px; }
+.consulta-registros .consulta-tabela-scroll { padding: 0 10px 6px; }
+.consulta-despesas-gerais { display: flex; flex-direction: column; gap: 10px; }
+.consulta-despesas-gerais > header h2 { margin: 0; font-size: 17px; }
+@media (max-width: 640px) {
+  .consulta-selecao-escopo { align-items: stretch; }
+  .consulta-selecao-escopo label { min-width: 100%; }
+  .consulta-selecao-escopo .consulta-acoes { display: grid; grid-template-columns: 1fr; }
+  .consulta-selecao-escopo .consulta-acoes button { width: 100%; }
+  .consulta-frota-grupo { padding: 12px; }
+  .consulta-subfrota { margin-left: 4px; padding: 10px; }
+  .consulta-caminhao-card { padding: 12px; }
+  .consulta-caminhao-cabecalho { flex-direction: column; }
+  .consulta-caminhao-totais { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .consulta-periodo-titulo h2 { font-size: 16px; }
+}
 @media print {
   .sem-impressao, .sidebar, .topo-mobile, .sidebar-backdrop { display: none !important; }
   .app, .content { display: block !important; min-height: 0 !important; padding: 0 !important; }
   .consulta-periodo { gap: 10px; }
   .consulta-resumo { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .consulta-resumo-card, .consulta-card { break-inside: avoid; padding: 8px; box-shadow: none; }
-  .consulta-card { break-inside: auto; }
+  .consulta-resumo-card, .consulta-card, .consulta-caminhao-card { break-inside: avoid; padding: 8px; box-shadow: none; }
+  .consulta-card, .consulta-caminhao-card { break-inside: auto; }
+  .consulta-frota-grupo, .consulta-subfrota { gap: 8px; padding: 8px; background: white; }
+  .consulta-frota-grupo > header, .consulta-subfrota > header { break-after: avoid; }
+  .consulta-registros { break-inside: auto; }
+  .consulta-registros h4 { break-after: avoid; padding: 5px; }
+  .consulta-caminhao-totais { grid-template-columns: repeat(4, 1fr); }
+  .consulta-caminhao-totais .consulta-resumo-card { padding: 5px; }
   .consulta-tabela-scroll { overflow: visible; }
   .consulta-tabela { min-width: 0; }
   .consulta-tabela th, .consulta-tabela td { padding: 4px; white-space: normal; font-size: 8px; }
-  .consulta-periodo-titulo h2, .consulta-card h2 { font-size: 12px; }
+  .consulta-periodo-titulo h2, .consulta-card h2, .consulta-frota-grupo > header h2 { font-size: 12px; }
+  .consulta-caminhao-cabecalho h3 { font-size: 11px; }
 }

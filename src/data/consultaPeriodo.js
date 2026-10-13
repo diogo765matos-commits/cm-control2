@@ -1,6 +1,11 @@
 import { db } from "../lib/supabase";
 import { converterNumero } from "../utils/formatadores";
-import { taxaEfetivaViagem } from "./caminhoes";
+import { FROTA_BAGACO, FROTA_CM, FROTA_TERCEIRIZADA, taxaEfetivaViagem } from "./caminhoes";
+
+export const ESCOPO_TODOS = "todos";
+export const ESCOPO_FROTA_CM = "cm";
+export const ESCOPO_FROTA_TERCEIRIZADA = "terceirizada";
+export const ESCOPO_CAMINHAO = "caminhao";
 
 const collatorNumero = new Intl.Collator("pt-BR", {
   numeric: true,
@@ -37,6 +42,93 @@ function ordenarPorNumeroNF(a, b) {
   if (!nfA && nfB) return 1;
   if (nfA && !nfB) return -1;
   return collatorNumero.compare(nfA, nfB);
+}
+
+function idCaminhaoDoItem(item) {
+  return item.caminhaoId ?? item.caminhao?.id ?? null;
+}
+
+function frotaDoItem(item, caminhoesPorId) {
+  const id = idCaminhaoDoItem(item);
+  return item.caminhao?.frota ?? caminhoesPorId.get(String(id))?.frota ?? null;
+}
+
+function itemPertenceAoEscopo(item, escopo, caminhaoId, caminhoesPorId) {
+  if (escopo === ESCOPO_TODOS) return true;
+
+  const id = idCaminhaoDoItem(item);
+  if (escopo === ESCOPO_CAMINHAO) {
+    return Boolean(caminhaoId) && String(id) === String(caminhaoId);
+  }
+
+  const frota = frotaDoItem(item, caminhoesPorId);
+  if (escopo === ESCOPO_FROTA_CM) return frota === FROTA_CM || frota === FROTA_BAGACO;
+  if (escopo === ESCOPO_FROTA_TERCEIRIZADA) return frota === FROTA_TERCEIRIZADA;
+  return false;
+}
+
+function somar(itens, campo) {
+  return itens.reduce((total, item) => total + (Number(item[campo]) || 0), 0);
+}
+
+/** Calcula valores de apresentação mantendo toneladas e m³ em medidas distintas. */
+export function calcularTotaisConsulta(consulta) {
+  const viagens = consulta.viagens || [];
+  const caminhoesPorId = new Map(
+    (consulta.caminhoes || []).map((caminhao) => [String(caminhao.id), caminhao])
+  );
+  const viagensBagaco = viagens.filter((viagem) => frotaDoItem(viagem, caminhoesPorId) === FROTA_BAGACO);
+  const viagensVolume = viagens.filter((viagem) => [FROTA_CM, FROTA_TERCEIRIZADA].includes(frotaDoItem(viagem, caminhoesPorId)));
+  const viagensUnidadeDesconhecida = viagens.filter((viagem) => ![FROTA_CM, FROTA_TERCEIRIZADA, FROTA_BAGACO].includes(frotaDoItem(viagem, caminhoesPorId)));
+  const abastecimentos = consulta.abastecimentos || [];
+  const despesasCaminhao = consulta.despesasCaminhao || [];
+  const despesasGerais = consulta.despesasGerais || [];
+  const icms = consulta.icms || [];
+
+  return {
+    quantidadeViagens: viagens.length,
+    volumeEntregueM3: somar(viagensVolume, "volumeEntregue"),
+    toneladasEntregues: somar(viagensBagaco, "volumeEntregue"),
+    volumeUnidadeDesconhecida: somar(viagensUnidadeDesconhecida, "volumeEntregue"),
+    receitaBruta: somar(viagens, "valorEntregue"),
+    combustivel: somar(abastecimentos, "valorTotal"),
+    despesasCaminhao: somar(despesasCaminhao, "valor"),
+    despesasGerais: somar(despesasGerais, "valor"),
+    icms: somar(icms, "valor"),
+  };
+}
+
+/** Aplica o escopo ao resultado já consultado, sem iniciar uma nova busca. */
+export function filtrarConsultaPorEscopo(consulta, escopo, caminhaoId = "") {
+  if (!consulta) return null;
+
+  const caminhoes = consulta.caminhoes || [];
+  const caminhoesPorId = new Map(caminhoes.map((caminhao) => [String(caminhao.id), caminhao]));
+  const filtrar = (itens = []) => itens.filter((item) => (
+    itemPertenceAoEscopo(item, escopo, caminhaoId, caminhoesPorId)
+  ));
+  const caminhoesEscopo = escopo === ESCOPO_TODOS
+    ? caminhoes
+    : escopo === ESCOPO_CAMINHAO
+      ? caminhoes.filter((caminhao) => String(caminhao.id) === String(caminhaoId))
+      : caminhoes.filter((caminhao) => {
+        if (escopo === ESCOPO_FROTA_CM) {
+          return caminhao.frota === FROTA_CM || caminhao.frota === FROTA_BAGACO;
+        }
+        return caminhao.frota === FROTA_TERCEIRIZADA;
+      });
+
+  const filtrada = {
+    ...consulta,
+    caminhoes: caminhoesEscopo,
+    viagens: filtrar(consulta.viagens),
+    abastecimentos: filtrar(consulta.abastecimentos),
+    despesasCaminhao: filtrar(consulta.despesasCaminhao),
+    despesasGerais: escopo === ESCOPO_TODOS ? [...(consulta.despesasGerais || [])] : [],
+    icms: filtrar(consulta.icms),
+  };
+  filtrada.totais = calcularTotaisConsulta(filtrada);
+  return filtrada;
 }
 
 /**
@@ -110,19 +202,19 @@ export async function consultarLancamentosPorPeriodo(inicio, fim) {
   return {
     inicio,
     fim,
+    caminhoes,
     viagens: viagensComValores,
     abastecimentos,
     despesasCaminhao,
     despesasGerais,
     icms,
-    totais: {
-      quantidadeViagens: viagensComValores.length,
-      volumeEntregue: viagensComValores.reduce((soma, item) => soma + item.volumeEntregue, 0),
-      receitaBruta: viagensComValores.reduce((soma, item) => soma + item.valorEntregue, 0),
-      combustivel: abastecimentos.reduce((soma, item) => soma + (Number(item.valorTotal) || 0), 0),
-      despesasCaminhao: despesasCaminhao.reduce((soma, item) => soma + (Number(item.valor) || 0), 0),
-      despesasGerais: despesasGerais.reduce((soma, item) => soma + (Number(item.valor) || 0), 0),
-      icms: icms.reduce((soma, item) => soma + (Number(item.valor) || 0), 0),
-    },
+    totais: calcularTotaisConsulta({
+      caminhoes,
+      viagens: viagensComValores,
+      abastecimentos,
+      despesasCaminhao,
+      despesasGerais,
+      icms,
+    }),
   };
 }

@@ -13,22 +13,25 @@ function Frota() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  async function carregar() {
-    setCarregando(true);
-
-    try {
-      const dados = await getCaminhoes();
-      setCaminhoes(dados);
-      setErro("");
-    } catch (e) {
-      setErro(e.message);
-    } finally {
-      setCarregando(false);
-    }
-  }
-
   useEffect(() => {
-    carregar();
+    let ativo = true;
+
+    getCaminhoes()
+      .then((dados) => {
+        if (!ativo) return;
+        setCaminhoes(dados);
+        setErro("");
+      })
+      .catch((e) => {
+        if (ativo) setErro(e.message);
+      })
+      .finally(() => {
+        if (ativo) setCarregando(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   async function adicionarCaminhao(dados, tipoFrota) {

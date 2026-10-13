@@ -10,7 +10,8 @@ import {
 import { formatarData, formatarMoeda } from "../utils/formatadores";
 import PageHeader from "../components/PageHeader";
 import DateRangeFilter from "../components/DateRangeFilter";
-import KpiCard, { CORES_KPI } from "../components/KpiCard";
+import KpiCard from "../components/KpiCard";
+import { CORES_KPI } from "../components/coresKpi";
 
 function DespesasExtras() {
   const [carregando, setCarregando] = useState(true);
@@ -34,22 +35,25 @@ function DespesasExtras() {
     valor: "",
   });
 
-  async function carregar() {
-    setCarregando(true);
-
-    try {
-      const dados = await getSemanasDespesasGerais();
-      setSemanas(dados);
-      setErro("");
-    } catch (e) {
-      setErro(e.message);
-    } finally {
-      setCarregando(false);
-    }
-  }
-
   useEffect(() => {
-    carregar();
+    let ativo = true;
+
+    getSemanasDespesasGerais()
+      .then((dados) => {
+        if (!ativo) return;
+        setSemanas(dados);
+        setErro("");
+      })
+      .catch((e) => {
+        if (ativo) setErro(e.message);
+      })
+      .finally(() => {
+        if (ativo) setCarregando(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   function semanaNoFiltro(semana) {

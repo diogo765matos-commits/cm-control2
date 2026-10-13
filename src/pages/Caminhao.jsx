@@ -58,7 +58,8 @@ import {
 import { gerarEBaixarPlanilha } from "../utils/relatorioExcel";
 import PageHeader from "../components/PageHeader";
 import DateRangeFilter from "../components/DateRangeFilter";
-import KpiCard, { CORES_KPI } from "../components/KpiCard";
+import KpiCard from "../components/KpiCard";
+import { CORES_KPI } from "../components/coresKpi";
 import "../styles/caminhao.css";
 
 function Caminhao() {
