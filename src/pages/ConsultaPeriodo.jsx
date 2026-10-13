@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { formatarData, formatarMoeda, formatarNumero } from "../utils/formatadores";
 import {
   calcularTotaisConsulta,
@@ -13,14 +13,10 @@ import { FROTA_BAGACO, FROTA_CM, FROTA_TERCEIRIZADA, FROTAS, unidadeDaFrota } fr
 import { TRANSPORTADORA_CM, TRANSPORTADORA_TERCEIRIZADA } from "../data/config";
 import PageHeader from "../components/PageHeader";
 import "../styles/consultaPeriodo.css";
+import { construirWorkbookConsulta } from "../utils/consultaPeriodoExcel";
+import logoUrl from "../assets/logo.png";
 
 const comparadorTexto = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
-
-function dataParaExcel(data) {
-  if (!data) return "";
-  const [ano, mes, dia] = data.split("-").map(Number);
-  return new Date(Date.UTC(ano, mes - 1, dia));
-}
 
 function tituloFrota(frota) {
   return FROTAS.find((item) => item.tipo === frota)?.titulo || "Frota não identificada";
@@ -140,128 +136,38 @@ function criarDadosRelatorio(consulta, escopo, rotuloEscopo) {
   };
 }
 
-function camposCaminhao(caminhao) {
-  return [
-    tituloFrota(caminhao?.frota),
-    caminhao?.modelo || "Caminhão",
-    caminhao?.placa || "Sem placa",
-    caminhao?.motorista || "Não informado",
-  ];
-}
-
-async function exportarExcel(relatorio) {
+async function exportarExcel(relatorio, aindaAtual = () => true) {
   const ExcelJS = window.ExcelJS;
   if (!ExcelJS) throw new Error("O gerador ExcelJS não está disponível. Recarregue a página e tente novamente.");
-
-  const workbook = new ExcelJS.Workbook();
-  workbook.creator = "C&M Control";
-  workbook.created = new Date();
-  const periodo = `${formatarData(relatorio.inicio)} a ${formatarData(relatorio.fim)}`;
-  const baseColunas = ["Frota", "Caminhão", "Placa", "Motorista"];
-  const viagensOrdenadas = ordenarPorFrotaECaminhao(relatorio.viagens);
-  const folhas = [
-    {
-      nome: "Viagens",
-      itens: viagensOrdenadas,
-      colunas: [...baseColunas, "Unidade", "Nº NF", "Data NF", "Vol. fiscal", "Vol. entregue", "Diferença", "CT-e", "Transportadora", "Frete R$/unid.", "Valor fiscal (R$)", "Complemento (R$)", "Valor físico (R$)", "Data transporte"],
-      linha: (v) => [...camposCaminhao(v.caminhao), unidadeDaFrota(v.caminhao?.frota).curta, v.nf || "", dataParaExcel(v.data), v.volumeFiscal, v.volumeEntregue, v.diferenca, v.cte || "", v.transportadora, v.taxa, v.valorFiscal, v.complemento, v.valorFisico, dataParaExcel(v.dataEntrega)],
-      colunasData: [7, 17],
-    },
-    {
-      nome: "Abastecimentos",
-      itens: ordenarPorFrotaECaminhao(relatorio.abastecimentos),
-      colunas: [...baseColunas, "Data", "Posto", "KM", "Litros diesel", "Litros ARLA", "Valor total"],
-      linha: (v) => [...camposCaminhao(v.caminhao), dataParaExcel(v.data), v.posto || "", v.km ?? "", v.litrosDiesel ?? "", v.litrosArla ?? "", Number(v.valorTotal) || 0],
-      colunasData: [5],
-    },
-    {
-      nome: "Despesas caminhão",
-      itens: ordenarPorFrotaECaminhao(relatorio.despesasCaminhao),
-      colunas: [...baseColunas, "Data", "Descrição", "Valor"],
-      linha: (v) => [...camposCaminhao(v.caminhao), dataParaExcel(v.data), v.descricao || "", Number(v.valor) || 0],
-      colunasData: [5],
-    },
-    {
-      nome: "ICMS",
-      itens: ordenarPorFrotaECaminhao(relatorio.icms),
-      colunas: [...baseColunas, "Data", "CT-e", "Valor"],
-      linha: (v) => [...camposCaminhao(v.caminhao), dataParaExcel(v.data), v.cte || "", Number(v.valor) || 0],
-      colunasData: [5],
-    },
-  ];
-  if (relatorio.escopoRelatorio === ESCOPO_TODOS) {
-    folhas.push({
-      nome: "Despesas gerais",
-      itens: relatorio.despesasGerais,
-      colunas: ["Data", "Descrição", "Valor"],
-      linha: (v) => [dataParaExcel(v.data), v.descricao || "", Number(v.valor) || 0],
-      colunasData: [1],
-    });
-  }
-
-  const resumo = workbook.addWorksheet("Resumo");
-  const linhasResumo = [
-    ["C&M CONTROL — RELATÓRIO POR PERÍODO", periodo],
-    ["Escopo", relatorio.rotuloEscopo],
-    ["Indicador", "Total"],
-    ["Viagens", relatorio.totais.quantidadeViagens],
-    ["Volume entregue (m³)", relatorio.totais.volumeEntregueM3],
-    ["Toneladas entregues (t)", relatorio.totais.toneladasEntregues],
-    ["Receita bruta", relatorio.totais.receitaBruta],
-    ["Combustível", relatorio.totais.combustivel],
-    ["Despesas dos caminhões", relatorio.totais.despesasCaminhao],
-    ["ICMS lançado", relatorio.totais.icms],
-  ];
-  if (relatorio.escopoRelatorio === ESCOPO_TODOS) {
-    linhasResumo.push(["Despesas gerais da empresa", relatorio.totais.despesasGerais]);
-  }
-  if (relatorio.totais.volumeUnidadeDesconhecida) {
-    linhasResumo.push(["Volume entregue (unidade não identificada)", relatorio.totais.volumeUnidadeDesconhecida]);
-  }
-  resumo.addRows(linhasResumo);
-  resumo.getRow(1).font = { bold: true };
-  resumo.getRow(3).font = { bold: true };
-  resumo.columns = [{ width: 32 }, { width: 30 }];
-
-  const abaCaminhoes = workbook.addWorksheet("Por caminhão");
-  abaCaminhoes.addRow(["C&M CONTROL — TOTAIS POR CAMINHÃO", periodo]);
-  abaCaminhoes.addRow(["Frota", "Caminhão", "Placa", "Motorista", "Viagens", "Unidade", "Volume entregue", "Receita bruta (R$)", "Abastecimentos (R$)", "Despesas do caminhão (R$)", "ICMS (R$)"]);
-  agruparCaminhoes(relatorio)
+  const respostaLogo = await fetch(logoUrl);
+  if (!respostaLogo.ok) throw new Error("Não foi possível carregar o logo do relatório. Tente novamente.");
+  const logoBlob = await respostaLogo.blob();
+  const logoBase64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Não foi possível preparar o logo do relatório."));
+    reader.readAsDataURL(logoBlob);
+  });
+  const grupos = agruparCaminhoes(relatorio)
     .sort((a, b) => comparadorTexto.compare(tituloFrota(a.caminhao.frota), tituloFrota(b.caminhao.frota)) || compararCaminhoes(a.caminhao, b.caminhao))
-    .forEach(({ caminhao, totais }) => {
-    const bagaco = caminhao.frota === FROTA_BAGACO;
-    const unidade = unidadeVisivel(caminhao.frota);
-    abaCaminhoes.addRow([
-      tituloFrota(caminhao.frota), caminhao.modelo || "Caminhão", caminhao.placa || "", caminhao.motorista || "",
-      totais.quantidadeViagens, unidade,
-      bagaco ? totais.toneladasEntregues : caminhao.frota ? totais.volumeEntregueM3 : totais.volumeUnidadeDesconhecida,
-      totais.receitaBruta, totais.combustivel, totais.despesasCaminhao, totais.icms,
-    ]);
-    });
-  abaCaminhoes.getRow(1).font = { bold: true };
-  abaCaminhoes.getRow(2).font = { bold: true };
-
-  for (const folha of folhas) {
-    const sheet = workbook.addWorksheet(folha.nome);
-    sheet.addRow(["C&M CONTROL — CONSULTA POR PERÍODO", periodo]);
-    sheet.addRow(["Escopo", relatorio.rotuloEscopo]);
-    sheet.addRow(folha.colunas);
-    folha.itens.forEach((item) => sheet.addRow(folha.linha(item)));
-    folha.colunasData.forEach((indice) => { sheet.getColumn(indice).numFmt = "dd/mm/yyyy"; });
-    sheet.getRow(1).font = { bold: true };
-    sheet.getRow(3).font = { bold: true };
-    sheet.views = [{ state: "frozen", ySplit: 3 }];
-    sheet.columns.forEach((coluna) => { coluna.width = Math.min(Math.max(coluna.header?.length || 14, 14), 30); });
-  }
-  abaCaminhoes.views = [{ state: "frozen", ySplit: 2 }];
-  abaCaminhoes.columns.forEach((coluna) => { coluna.width = Math.min(Math.max(coluna.header?.length || 14, 14), 30); });
+    .map(grupo => ({
+      ...grupo,
+      nomeFrota: tituloFrota(grupo.caminhao.frota),
+      unidade: unidadeVisivel(grupo.caminhao.frota),
+      volumeEntregue: grupo.caminhao.frota === FROTA_BAGACO
+        ? grupo.totais.toneladasEntregues
+        : grupo.caminhao.frota ? grupo.totais.volumeEntregueM3 : grupo.totais.volumeUnidadeDesconhecida,
+      registros: { ...grupo.registros, viagens: ordenarPorFrotaECaminhao(grupo.registros.viagens) },
+    }));
+  const workbook = construirWorkbookConsulta({ ExcelJS, relatorio, grupos, logoBase64 });
 
   const buffer = await workbook.xlsx.writeBuffer();
+  if (!aindaAtual()) return false;
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `Relatorio_${relatorio.inicio}_a_${relatorio.fim}.xlsx`;
+  link.download = `Relatorio_${relatorio.nomeArquivoEscopo}_${relatorio.inicio}_a_${relatorio.fim}.xlsx`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -354,19 +260,20 @@ function ConsultaPeriodo() {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [consulta, setConsulta] = useState(null);
-  const [relatorio, setRelatorio] = useState(null);
+  const [exportando, setExportando] = useState(false);
+  const versaoSelecao = useRef(0);
+  const versaoConsulta = useRef(0);
   const [escopo, setEscopo] = useState(ESCOPO_TODOS);
   const [caminhaoSelecionado, setCaminhaoSelecionado] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
+  const consultaAtual = !carregando && consulta?.inicio === inicio && consulta?.fim === fim;
   const dadosEscopo = useMemo(
-    () => consulta ? filtrarConsultaPorEscopo(consulta, escopo, caminhaoSelecionado) : null,
-    [consulta, escopo, caminhaoSelecionado]
+    () => consultaAtual ? filtrarConsultaPorEscopo(consulta, escopo, caminhaoSelecionado) : null,
+    [consulta, consultaAtual, escopo, caminhaoSelecionado]
   );
-  const dadosExibidos = relatorio || dadosEscopo;
-  const gruposCaminhoes = useMemo(() => dadosExibidos ? agruparCaminhoes(dadosExibidos) : [], [dadosExibidos]);
-  const caminhoesDoEscopo = consulta?.caminhoes || [];
+  const caminhoesDoEscopo = consultaAtual ? consulta.caminhoes : [];
   const caminhaoAtual = caminhoesDoEscopo.find((item) => String(item.id) === String(caminhaoSelecionado));
   const exibirCm = escopo === ESCOPO_TODOS || escopo === ESCOPO_FROTA_CM
     || (escopo === ESCOPO_CAMINHAO && [FROTA_CM, FROTA_BAGACO].includes(caminhaoAtual?.frota));
@@ -379,9 +286,28 @@ function ConsultaPeriodo() {
       : escopo === ESCOPO_FROTA_TERCEIRIZADA
         ? "Frota Terceirizada"
         : caminhaoAtual
-          ? `${caminhaoAtual.placa || "Sem placa"} — ${caminhaoAtual.modelo || "Caminhão"}${caminhaoAtual.motorista ? ` — ${caminhaoAtual.motorista}` : ""}`
+          ? `${caminhaoAtual.placa || "Sem placa"} — ${caminhaoAtual.modelo || "Caminhão"} — ${tituloFrota(caminhaoAtual.frota)} (${unidadeVisivel(caminhaoAtual.frota)})${caminhaoAtual.motorista ? ` — ${caminhaoAtual.motorista}` : ""}`
           : "Selecione um caminhão";
-  const gerarDesabilitado = !consulta || carregando || (escopo === ESCOPO_CAMINHAO && !caminhaoSelecionado);
+  const selecaoValida = consultaAtual && (escopo !== ESCOPO_CAMINHAO || Boolean(caminhaoAtual));
+  const relatorio = useMemo(() => {
+    if (!dadosEscopo || !selecaoValida) return null;
+    const dados = criarDadosRelatorio(dadosEscopo, escopo, rotuloEscopo);
+    const nomeArquivoEscopo = escopo === ESCOPO_CAMINHAO
+      ? `Caminhao_${caminhaoAtual.placa || "Sem_placa"}_${caminhaoAtual.frota || "Sem_frota"}`
+      : escopo === ESCOPO_FROTA_CM ? "Frota_CM" : escopo === ESCOPO_FROTA_TERCEIRIZADA ? "Terceirizada" : "Todos";
+    return { ...dados, nomeArquivoEscopo: nomeArquivoEscopo.replace(/[^a-zA-Z0-9_-]/g, "_") };
+  }, [dadosEscopo, selecaoValida, escopo, rotuloEscopo, caminhaoAtual]);
+  const dadosExibidos = relatorio;
+  const gruposCaminhoes = useMemo(() => relatorio ? agruparCaminhoes(relatorio) : [], [relatorio]);
+
+  function mudarPeriodo(campo, valor) {
+    versaoSelecao.current += 1;
+    versaoConsulta.current += 1;
+    setCarregando(false);
+    setErro("");
+    if (campo === "inicio") setInicio(valor);
+    else setFim(valor);
+  }
 
   async function consultar(evento) {
     evento.preventDefault();
@@ -394,41 +320,44 @@ function ConsultaPeriodo() {
       setErro("A data inicial deve ser anterior ou igual à data final.");
       return;
     }
+    const requisicao = ++versaoConsulta.current;
+    versaoSelecao.current += 1;
     setCarregando(true);
     setConsulta(null);
-    setRelatorio(null);
-    setEscopo(ESCOPO_TODOS);
-    setCaminhaoSelecionado("");
     try {
-      setConsulta(await consultarLancamentosPorPeriodo(inicio, fim));
+      const resultado = await consultarLancamentosPorPeriodo(inicio, fim);
+      if (requisicao === versaoConsulta.current) setConsulta(resultado);
     } catch (e) {
-      setErro(`Não foi possível consultar os lançamentos: ${e.message}`);
-      setConsulta(null);
+      if (requisicao === versaoConsulta.current) {
+        setErro(`Não foi possível consultar os lançamentos: ${e.message}`);
+        setConsulta(null);
+      }
     } finally {
-      setCarregando(false);
+      if (requisicao === versaoConsulta.current) setCarregando(false);
     }
   }
 
   function mudarEscopo(novoEscopo) {
+    versaoSelecao.current += 1;
+    setErro("");
     setEscopo(novoEscopo);
     setCaminhaoSelecionado("");
-    setRelatorio(null);
   }
 
   function mudarCaminhao(id) {
-    setCaminhaoSelecionado(id);
-    setRelatorio(null);
-  }
-
-  function gerarRelatorio() {
-    if (!dadosEscopo || gerarDesabilitado) return;
+    versaoSelecao.current += 1;
     setErro("");
-    setRelatorio(criarDadosRelatorio(dadosEscopo, escopo, rotuloEscopo));
+    setCaminhaoSelecionado(id);
   }
 
   async function baixarExcel() {
-    try { await exportarExcel(relatorio); }
-    catch (e) { setErro(e.message); }
+    if (!relatorio || exportando) return;
+    const versao = versaoSelecao.current;
+    setExportando(true);
+    setErro("");
+    try { await exportarExcel(relatorio, () => versao === versaoSelecao.current); }
+    catch (e) { if (versao === versaoSelecao.current) setErro(e.message); }
+    finally { setExportando(false); }
   }
 
   function listaCaminhoes(frota) {
@@ -439,45 +368,52 @@ function ConsultaPeriodo() {
     <div className="consulta-periodo">
       <PageHeader titulo="Consulta por Período" subtitulo="Consulte lançamentos pela data em que ocorreram, sem depender do fechamento semanal." />
       <form className="consulta-filtros sem-impressao" onSubmit={consultar}>
-        <label>Data inicial<input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} required /><span className="consulta-data-legenda">{inicio ? formatarData(inicio) : "DD/MM/AAAA"}</span></label>
-        <label>Data final<input type="date" value={fim} onChange={(e) => setFim(e.target.value)} min={inicio || undefined} required /><span className="consulta-data-legenda">{fim ? formatarData(fim) : "DD/MM/AAAA"}</span></label>
+        <label>Data inicial<input type="date" value={inicio} onChange={(e) => mudarPeriodo("inicio", e.target.value)} required /><span className="consulta-data-legenda">{inicio ? formatarData(inicio) : "DD/MM/AAAA"}</span></label>
+        <label>Data final<input type="date" value={fim} onChange={(e) => mudarPeriodo("fim", e.target.value)} min={inicio || undefined} required /><span className="consulta-data-legenda">{fim ? formatarData(fim) : "DD/MM/AAAA"}</span></label>
         <button type="submit" disabled={carregando}>{carregando ? "Consultando…" : "Consultar"}</button>
       </form>
       {erro && <p className="consulta-erro" role="alert">{erro}</p>}
-      {consulta && dadosExibidos && <>
-        <section className="consulta-selecao-escopo sem-impressao" aria-label="Controles do relatório">
-          <label>Escopo do Relatório
-            <select value={escopo} onChange={(e) => mudarEscopo(e.target.value)}>
-              <option value={ESCOPO_TODOS}>Todos os caminhões</option>
-              <option value={ESCOPO_FROTA_CM}>Frota C&M</option>
-              <option value={ESCOPO_FROTA_TERCEIRIZADA}>Frota Terceirizada</option>
-              <option value={ESCOPO_CAMINHAO}>Caminhão específico</option>
-            </select>
-          </label>
+      {consulta && !consultaAtual && !carregando && <p className="consulta-relatorio-legenda" role="status">O período foi alterado. Clique em Consultar para atualizar a prévia e liberar o Excel.</p>}
+      {consultaAtual && <section className="consulta-selecao-escopo sem-impressao" aria-label="Controles do relatório">
+          <fieldset className="consulta-opcoes-escopo">
+            <legend>Qual relatório você quer visualizar e baixar?</legend>
+            <div className="consulta-escopo-grid">
+              {[
+                [ESCOPO_FROTA_CM, "C&M", "Inclui Bagaço de Cana, com unidades separadas"],
+                [ESCOPO_FROTA_TERCEIRIZADA, "Terceirizada", "Somente os caminhões terceirizados"],
+                [ESCOPO_CAMINHAO, "Caminhão individual", "Escolha qualquer placa e seu contexto de frota"],
+                [ESCOPO_TODOS, "Todos", "Consolidado com as despesas gerais da empresa"],
+              ].map(([valor, titulo, descricao]) => <label className={escopo === valor ? "consulta-escopo-opcao selecionada" : "consulta-escopo-opcao"} key={valor}>
+                <input type="radio" name="escopo-relatorio" value={valor} checked={escopo === valor} onChange={() => mudarEscopo(valor)} />
+                <span><strong>{titulo}</strong><small>{descricao}</small></span>
+              </label>)}
+            </div>
+          </fieldset>
           {escopo === ESCOPO_CAMINHAO && <label>Caminhão
             <select value={caminhaoSelecionado} onChange={(e) => mudarCaminhao(e.target.value)}>
               <option value="">Selecione placa, modelo e motorista</option>
               {caminhoesDoEscopo.slice().sort(compararCaminhoes).map((caminhao) => (
                 <option key={caminhao.id} value={caminhao.id}>
-                  {caminhao.placa || "Sem placa"} — {caminhao.modelo || "Caminhão"}{caminhao.motorista ? ` — ${caminhao.motorista}` : ""}
+                  {caminhao.placa || "Sem placa"} — {caminhao.modelo || "Caminhão"} — {tituloFrota(caminhao.frota)} ({unidadeVisivel(caminhao.frota)}){caminhao.motorista ? ` — ${caminhao.motorista}` : ""}
                 </option>
               ))}
             </select>
           </label>}
           <div className="consulta-acoes">
-            <button type="button" onClick={gerarRelatorio} disabled={gerarDesabilitado}>Gerar Relatório</button>
-            {relatorio && <button type="button" onClick={baixarExcel}>Baixar Excel</button>}
-            <button type="button" className="consulta-botao-secundario" onClick={() => window.print()}>Salvar como PDF</button>
+            <button type="button" onClick={baixarExcel} disabled={!relatorio || exportando}>{exportando ? "Preparando Excel..." : "Baixar Excel deste relatório"}</button>
+            <button type="button" className="consulta-botao-secundario" disabled={!relatorio} onClick={() => window.print()}>Salvar como PDF</button>
           </div>
-        </section>
+          <p className="consulta-selecao-ajuda" role="status">{relatorio ? "A prévia abaixo e o Excel usam a mesma seleção. Ao trocar a opção, a prévia é atualizada automaticamente." : "Selecione um caminhão para exibir a prévia e liberar o download."}</p>
+        </section>}
 
+      {dadosExibidos && <>
         <div className="consulta-periodo-titulo">
           <div>
-            <h2>{relatorio ? "Prévia do Relatório" : "Resultados"} · {formatarData(dadosExibidos.inicio)} a {formatarData(dadosExibidos.fim)}</h2>
+            <h2>Prévia do Relatório · {formatarData(dadosExibidos.inicio)} a {formatarData(dadosExibidos.fim)}</h2>
             <p>Escopo: <strong>{dadosExibidos.rotuloEscopo || rotuloEscopo}</strong></p>
           </div>
         </div>
-        {relatorio && <p className="consulta-relatorio-legenda">Prévia gerada com os lançamentos já carregados e filtrados nesta consulta.</p>}
+        {relatorio && <p className="consulta-relatorio-legenda">Excel organizado em Resumo e uma aba por caminhão, com os mesmos lançamentos desta prévia.</p>}
 
         <section className="consulta-resumo" aria-label="Resumo do escopo selecionado">
           <Resumo titulo="Viagens" valor={dadosExibidos.totais.quantidadeViagens} />

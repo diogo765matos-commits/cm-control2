@@ -28,6 +28,17 @@
 .consulta-selecao-escopo select { min-height: 40px; border: 1px solid var(--cor-borda); border-radius: 8px; padding: 8px 10px; color: var(--cor-texto); background: white; }
 .consulta-selecao-escopo .consulta-acoes { flex: 1 1 100%; }
 .consulta-selecao-escopo button:disabled { opacity: .55; cursor: not-allowed; }
+.consulta-opcoes-escopo { width: 100%; min-width: 0; margin: 0; padding: 0; border: 0; }
+.consulta-opcoes-escopo legend { margin-bottom: 12px; font-size: 16px; font-weight: 700; color: var(--cor-texto); }
+.consulta-escopo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.consulta-selecao-escopo .consulta-escopo-opcao { min-width: 0; flex-direction: row; align-items: flex-start; gap: 10px; padding: 14px; border: 1px solid var(--cor-borda); border-radius: 10px; cursor: pointer; background: var(--cor-superficie); }
+.consulta-selecao-escopo .consulta-escopo-opcao.selecionada { border-color: var(--cor-primaria); background: var(--cor-primaria-clara); }
+.consulta-escopo-opcao input { margin-top: 3px; flex-shrink: 0; }
+.consulta-escopo-opcao strong { display: block; font-size: 14px; color: var(--cor-texto); }
+.consulta-escopo-opcao small { display: block; margin-top: 5px; line-height: 1.5; font-size: 12px; font-weight: 400; }
+.consulta-selecao-ajuda { flex-basis: 100%; color: var(--cor-texto-secundario); font-size: 13px; line-height: 1.5; }
+@media (max-width: 1100px) { .consulta-escopo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .consulta-escopo-grid { grid-template-columns: 1fr; } }
 .consulta-periodo-titulo p { margin-top: 5px; color: var(--cor-texto-secundario); font-size: 13px; }
 .consulta-relatorio-legenda { padding: 12px 14px; border-left: 3px solid var(--cor-primaria); border-radius: 6px; color: var(--cor-texto-secundario); background: var(--cor-superficie); font-size: 13px; }
 .consulta-frota-grupo { display: flex; flex-direction: column; gap: 14px; padding: 18px; border: 1px solid var(--cor-borda); border-radius: var(--raio); background: var(--cor-superficie); }
