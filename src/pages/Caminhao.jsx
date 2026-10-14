@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getCaminhoes,
   atualizarCaminhao,
@@ -403,6 +403,41 @@ function Caminhao() {
   // ======================
 
   const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
+  const relatorioModalRef = useRef(null);
+
+  useEffect(() => {
+    if (!mostrarRelatorio) return;
+    const anterior = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const primeiroControle = relatorioModalRef.current?.querySelector("button:not(:disabled), input:not(:disabled), select:not(:disabled)");
+    (primeiroControle || relatorioModalRef.current)?.focus();
+    function teclado(event) {
+      if (event.key === "Escape") setMostrarRelatorio(false);
+      if (event.key !== "Tab") return;
+      const itens = relatorioModalRef.current?.querySelectorAll("button:not(:disabled), input:not(:disabled), select:not(:disabled), a[href]");
+      const primeiro = itens?.[0];
+      const ultimo = itens?.[itens.length - 1];
+      if (!itens?.length) {
+        event.preventDefault();
+        relatorioModalRef.current?.focus();
+        return;
+      }
+      if (event.shiftKey && document.activeElement === primeiro) {
+        event.preventDefault();
+        ultimo?.focus();
+      } else if (!event.shiftKey && document.activeElement === ultimo) {
+        event.preventDefault();
+        primeiro?.focus();
+      }
+    }
+    document.addEventListener("keydown", teclado);
+    return () => {
+      document.body.style.overflow = overflow;
+      document.removeEventListener("keydown", teclado);
+      anterior?.focus();
+    };
+  }, [mostrarRelatorio]);
   const [inicioRelatorio, setInicioRelatorio] = useState("");
   const [fimRelatorio, setFimRelatorio] = useState("");
   const [gerandoRelatorio, setGerandoRelatorio] = useState(false);
@@ -1101,8 +1136,8 @@ function Caminhao() {
           style={estiloModalFundo}
           onClick={() => setMostrarRelatorio(false)}
         >
-          <div style={estiloModalCaixa} onClick={(e) => e.stopPropagation()}>
-            <h3>Gerar Relatório Semanal</h3>
+          <div ref={relatorioModalRef} className="report-modal" role="dialog" tabIndex={-1} aria-modal="true" aria-labelledby="report-modal-title" style={estiloModalCaixa} onClick={(e) => e.stopPropagation()}>
+            <h3 id="report-modal-title">Gerar Relatório Semanal</h3>
 
             <p style={estiloLegenda}>
               Gera um arquivo Excel só com as viagens deste caminhão no
@@ -1580,7 +1615,7 @@ function Caminhao() {
                   <div style={estiloFormulario} className="caminhao-formulario">
                     <h3>Nova Viagem</h3>
 
-                    <div style={estiloGridFormulario}>
+                    <div style={estiloGridFormulario} className="form-grid">
                       <Campo
                         titulo="Data"
                         type="date"
@@ -1729,7 +1764,7 @@ function Caminhao() {
                     </p>
                   </div>
                 ) : (
-                  <div style={estiloTabelaContainer}>
+                  <div className="table-scroll" style={estiloTabelaContainer}>
                     <table style={estiloTabela}>
                       <thead>
                         <tr>
@@ -2124,7 +2159,7 @@ function Caminhao() {
     Nenhum abastecimento cadastrado nesta semana.
   </p>
 ) : (
-  <div
+  <div className="table-scroll"
     style={{
       ...estiloTabelaContainer,
       marginTop: "25px",
@@ -2379,7 +2414,7 @@ function Caminhao() {
               >
                 <h3>Novo Abastecimento</h3>
 
-                <div style={estiloGridFormulario}>
+                <div style={estiloGridFormulario} className="form-grid">
                   <Campo
                     titulo="Data"
                     type="date"
@@ -2503,7 +2538,7 @@ function Caminhao() {
                   />
                 </div>
 
-                <div style={estiloPreviaValores}>
+                <div style={estiloPreviaValores} className="form-summary">
                   <div>
                     <span style={estiloLegenda}>
                       Diesel
@@ -2860,6 +2895,7 @@ function Caminhao() {
   .replace(".", ",")}
 </h3>
 
+    <div className="table-scroll">
     <table
       style={{
         width: "100%",
@@ -2910,6 +2946,7 @@ function Caminhao() {
         ))}
       </tbody>
     </table>
+    </div>
 
   </div>
 )}
@@ -3011,7 +3048,7 @@ function Caminhao() {
           para ver o fechamento aqui.
         </p>
       ) : (
-        <div style={{ ...estiloTabelaContainer, marginTop: "20px" }}>
+        <div className="table-scroll" style={{ ...estiloTabelaContainer, marginTop: "20px" }}>
           <table style={estiloTabela}>
             <thead>
               <tr>
@@ -3163,7 +3200,7 @@ function Caminhao() {
                     Total ICMS a Pagar: {formatarMoeda(totalIcms)}
                   </h3>
 
-                  <div style={estiloTabelaContainer}>
+                  <div className="table-scroll" style={estiloTabelaContainer}>
                     <table style={estiloTabela}>
                       <thead>
                         <tr>
@@ -3388,6 +3425,7 @@ function Campo({
 
       <input
         type={type}
+        inputMode={type === "number" ? "decimal" : undefined}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
@@ -3679,3 +3717,4 @@ const estiloValorTotal = {
 };
 
 export default Caminhao;
+

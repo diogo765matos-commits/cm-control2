@@ -1,0 +1,85 @@
+/* Conservative fitting only: retain the existing screens, labels, order and tables. */
+.content > *, .page-header, .page-header-copy, .page-header-controls { min-width: 0; }
+.page-header-copy, .page-header-controls { max-width: 100%; }
+.page-header h1, .page-header p { overflow-wrap: anywhere; }
+.sidebar { flex: 0 0 260px; }
+.date-range-filter, .date-range-dates { min-width: 0; max-width: 100%; }
+.date-range-dates input { min-width: 0; max-width: 100%; }
+.form-grid, .form-summary { min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)) !important; }
+.form-grid > *, .form-summary > * { min-width: 0; }
+.form-actions { flex-wrap: wrap; }
+.report-modal { max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto; overscroll-behavior: contain; }
+.report-modal input { min-width: 0; max-width: 100%; }
+.kpi-card .kpi-valor { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; }
+.table-scroll, .consulta-tabela-scroll, .caminhao-abastecimentos-desktop { min-width: 0; max-width: 100%; overflow-x: auto; }
+
+@media (max-width: 1100px) {
+  .content { padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left)); }
+  .content input:not([type="radio"]):not([type="checkbox"]), .content select, .content textarea { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px !important; }
+  .content button, .report-modal button { min-height: 44px; }
+  .report-modal input { min-height: 44px; font-size: 16px !important; }
+  .consulta-filtros label { flex: 1 1 180px; min-width: 0; }
+  .consulta-filtros input { width: 100%; }
+  .consulta-acoes button { white-space: normal; }
+  .expenses-section-header { flex-wrap: wrap; min-width: 0; }
+  .expenses-section-header > * { min-width: 0; max-width: 100%; }
+  .expenses-fields > label { min-width: 0 !important; flex: 1 1 200px !important; }
+  .expenses-week-edit { flex-wrap: wrap; }
+}
+
+@media (max-width: 900px) {
+  .sidebar { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .topo-mobile { padding-top: max(10px, env(safe-area-inset-top)); padding-bottom: 10px; }
+  .botao-hamburguer, .sidebar-fechar { min-width: 44px; min-height: 44px; }
+}
+
+@media (max-width: 640px) {
+  .content { padding-top: 20px; }
+  .login-screen { min-height: 100svh !important; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+  .login-card { min-width: 0; padding: 24px !important; }
+  .login-card h1 { font-size: 25px; }
+  .login-card input { min-width: 0; max-width: 100%; min-height: 44px; font-size: 16px !important; }
+  .login-card button { min-height: 44px; }
+  .page-header { gap: 16px !important; }
+  .page-header h1 { font-size: 23px !important; line-height: 1.25; }
+  .page-header-copy p { font-size: 14px; line-height: 1.5; }
+  .page-header-controls, .date-range-filter { width: 100%; }
+  .date-range-dates { width: 100%; padding: 8px 10px !important; }
+  .date-range-filter > button:first-of-type { flex: 1; }
+  .page-header-controls > button { max-width: 100%; white-space: normal !important; }
+  .dashboard-periodo-controles { width: 100%; justify-items: stretch; }
+  .dashboard-producao { padding: 14px; }
+  .dashboard-medida { padding: 14px 10px; }
+  .dashboard-barra-linha { grid-template-columns: minmax(72px, .8fr) minmax(20px, 1fr) max-content; gap: 6px; }
+  .frota-acoes, .frota-formulario-acoes { max-width: 100%; }
+  .frota-formulario-acoes > button { flex: 1; }
+  .frota-formulario { padding: 16px; }
+  .consulta-filtros { padding: 14px; }
+  .consulta-resumo-card { min-width: 0; }
+  .consulta-resumo-card strong { overflow-wrap: anywhere; }
+  .consulta-frota-grupo, .consulta-subfrota, .consulta-caminhao-card, .consulta-registros { min-width: 0; }
+  .consulta-frota-grupo > header, .consulta-subfrota > header, .consulta-despesas-gerais > header { flex-wrap: wrap; }
+  .consulta-caminhao-cabecalho p, .consulta-caminhao-cabecalho h3 { overflow-wrap: anywhere; }
+  .caminhao-page .caminhao-conteudo { padding: 12px !important; }
+  .caminhao-page .caminhao-formulario { padding: 14px !important; }
+  .caminhao-campos { width: 100%; }
+  .caminhao-campos > label { flex-basis: 100%; }
+  .caminhao-page .caminhao-formulario-acoes { width: 100%; }
+  .caminhao-formulario-acoes > button { flex: 1 1 120px; white-space: normal; }
+  .caminhao-page .caminhao-semana { padding: 14px !important; }
+  .caminhao-semana > div:last-child { gap: 8px !important; }
+  .expenses-content { padding: 16px !important; }
+  .expenses-form { padding: 14px !important; }
+  .expenses-fields > label { flex-basis: 100% !important; width: 100%; }
+  .form-actions > button { flex: 1 1 120px; }
+  .form-summary { padding: 12px !important; }
+  .report-modal { padding: 20px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .dashboard-kpi, .dashboard-barra-preenchimento { transition: none; }
+}
+
+@media print {
+  .table-scroll, .consulta-tabela-scroll { overflow: visible; }
+}

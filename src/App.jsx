@@ -13,6 +13,7 @@ import PeriodoDetalhe from "./pages/PeriodoDetalhe";
 import ConsultaPeriodo from "./pages/ConsultaPeriodo";
 
 import { auth } from "./lib/supabase";
+import "./styles/responsive.css";
 
 function App() {
   const [sessao, setSessao] = useState(() => auth.sessaoAtual());
@@ -40,6 +41,8 @@ function App() {
             className="botao-hamburguer"
             onClick={() => setMenuAberto(true)}
             aria-label="Abrir menu"
+            aria-expanded={menuAberto}
+            aria-controls="menu-principal"
           >
             ☰
           </button>
@@ -76,3 +79,4 @@ function App() {
 }
 
 export default App;
+

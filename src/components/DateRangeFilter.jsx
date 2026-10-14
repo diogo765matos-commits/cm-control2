@@ -20,12 +20,13 @@ function DateRangeFilter({ inicio, fim, onAplicar, onLimpar }) {
   }
 
   return (
-    <div style={estiloContainer}>
-      <div style={estiloCaixaData}>
+    <div className="date-range-filter" style={estiloContainer}>
+      <div className="date-range-dates" style={estiloCaixaData}>
         <span style={estiloIconeCalendario}>📅</span>
 
         <input
           type="date"
+          aria-label="Data inicial"
           value={rascunhoInicio}
           onChange={(e) => setRascunhoInicio(e.target.value)}
           style={estiloInput}
@@ -35,6 +36,7 @@ function DateRangeFilter({ inicio, fim, onAplicar, onLimpar }) {
 
         <input
           type="date"
+          aria-label="Data final"
           value={rascunhoFim}
           onChange={(e) => setRascunhoFim(e.target.value)}
           style={estiloInput}
@@ -111,3 +113,4 @@ const estiloBotaoLimpar = {
 };
 
 export default DateRangeFilter;
+

@@ -262,10 +262,10 @@ function DespesasExtras() {
         />
       </div>
 
-      <div style={estiloContainer}>
+      <div className="expenses-content" style={estiloContainer}>
         {!semanaAberta ? (
           <>
-            <div style={estiloCabecalhoSecao}>
+            <div className="expenses-section-header" style={estiloCabecalhoSecao}>
               <div>
                 <h2>Semanas</h2>
 
@@ -283,10 +283,10 @@ function DespesasExtras() {
             </div>
 
             {mostrarNovaSemana && (
-              <div style={estiloFormulario}>
+              <div className="expenses-form" style={estiloFormulario}>
                 <h3>Nova Semana</h3>
 
-                <div style={estiloCampos}>
+                <div className="expenses-fields" style={estiloCampos}>
                   <Campo
                     titulo="Início"
                     type="date"
@@ -302,7 +302,7 @@ function DespesasExtras() {
                   />
                 </div>
 
-                <div style={estiloAcoesFormulario}>
+                <div className="form-actions" style={estiloAcoesFormulario}>
                   <button
                     style={estiloBotaoCancelar}
                     onClick={() => setMostrarNovaSemana(false)}
@@ -335,8 +335,8 @@ function DespesasExtras() {
               <div style={estiloListaSemanas}>
                 {semanasVisiveis.map((semana) =>
                   editandoSemana?.id === semana.id ? (
-                    <div key={semana.id} style={estiloSemana}>
-                      <div style={estiloCampos}>
+                    <div key={semana.id} className="expenses-week-edit" style={estiloSemana}>
+                      <div className="expenses-fields" style={estiloCampos}>
                         <Campo
                           titulo="Início"
                           type="date"
@@ -458,7 +458,7 @@ function DespesasExtras() {
           </>
         ) : (
           <>
-            <div style={estiloCabecalhoSecao}>
+            <div className="expenses-section-header" style={estiloCabecalhoSecao}>
               <div>
                 <button
                   style={estiloBotaoVoltarSemana}
@@ -488,10 +488,10 @@ function DespesasExtras() {
               </button>
             </div>
 
-            <div style={estiloFormulario}>
+            <div className="expenses-form" style={estiloFormulario}>
               <h3>Nova Despesa</h3>
 
-              <div style={estiloCampos}>
+              <div className="expenses-fields" style={estiloCampos}>
                 <Campo
                   titulo="Data"
                   type="date"
@@ -524,7 +524,7 @@ function DespesasExtras() {
                 />
               </div>
 
-              <div style={estiloAcoesFormulario}>
+              <div className="form-actions" style={estiloAcoesFormulario}>
                 <button style={estiloBotaoDourado} onClick={adicionarDespesa}>
                   + Adicionar Despesa
                 </button>
@@ -552,7 +552,7 @@ function DespesasExtras() {
                   )}
                 </h3>
 
-                <div style={estiloTabelaContainer}>
+                <div className="table-scroll" style={estiloTabelaContainer}>
                   <table style={estiloTabela}>
                     <thead>
                       <tr>
@@ -602,6 +602,7 @@ function Campo({ titulo, type = "text", value, onChange, placeholder }) {
 
       <input
         type={type}
+        inputMode={type === "number" ? "decimal" : undefined}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
@@ -873,3 +874,4 @@ const estiloRodapeInfo = {
 };
 
 export default DespesasExtras;
+

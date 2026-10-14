@@ -276,7 +276,7 @@ function PeriodoDetalhe() {
               </div>
             </div>
 
-            <div style={estiloTabelaContainer}>
+            <div className="table-scroll" style={estiloTabelaContainer}>
               <table style={estiloTabela}>
                 <thead>
                   <tr>
@@ -364,7 +364,7 @@ const estiloGridKpis = {
 
 const estiloGridGraficos = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
   gap: "20px",
   marginBottom: "24px",
   alignItems: "stretch",
@@ -463,3 +463,4 @@ const estiloAviso = {
 };
 
 export default PeriodoDetalhe;
+

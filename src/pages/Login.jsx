@@ -46,8 +46,8 @@ function Login({ onLogin }) {
   }
 
   return (
-    <div style={estiloTela}>
-      <form style={estiloCard} onSubmit={enviar}>
+    <div className="login-screen" style={estiloTela}>
+      <form className="login-card" style={estiloCard} onSubmit={enviar}>
         <h1 style={{ marginBottom: "6px" }}>🚛 C&M Control</h1>
 
         <p style={{ color: "var(--cor-texto-secundario)", marginBottom: "20px" }}>
@@ -191,3 +191,4 @@ const estiloBotao = {
 };
 
 export default Login;
+

@@ -182,6 +182,10 @@
     top: 0;
     left: 0;
     height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    max-width: calc(100vw - 32px);
     z-index: 110;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
@@ -213,3 +217,4 @@
     z-index: 105;
   }
 }
+

@@ -1,13 +1,13 @@
 function PageHeader({ breadcrumb, titulo, subtitulo, children, className }) {
   return (
-    <div style={estiloHeader} className={className}>
-      <div>
+    <div style={estiloHeader} className={`page-header ${className || ""}`}>
+      <div className="page-header-copy">
         {breadcrumb && <div style={estiloBreadcrumb}>{breadcrumb}</div>}
         <h1 style={estiloTitulo}>{titulo}</h1>
         {subtitulo && <p style={estiloSubtitulo}>{subtitulo}</p>}
       </div>
 
-      {children && <div style={estiloControles}>{children}</div>}
+      {children && <div className="page-header-controls" style={estiloControles}>{children}</div>}
     </div>
   );
 }
@@ -45,3 +45,4 @@ const estiloControles = {
 };
 
 export default PageHeader;
+
