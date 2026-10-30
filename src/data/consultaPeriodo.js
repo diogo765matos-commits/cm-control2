@@ -1,3 +1,4 @@
+import { repartirReceita, somarReceitas } from "../utils/receitaEmpresa";
 import { db } from "../lib/supabase";
 import { converterNumero } from "../utils/formatadores";
 import { FROTA_BAGACO, FROTA_CM, FROTA_TERCEIRIZADA, taxaEfetivaViagem } from "./caminhoes";
@@ -90,7 +91,7 @@ export function calcularTotaisConsulta(consulta) {
     volumeEntregueM3: somar(viagensVolume, "volumeEntregue"),
     toneladasEntregues: somar(viagensBagaco, "volumeEntregue"),
     volumeUnidadeDesconhecida: somar(viagensUnidadeDesconhecida, "volumeEntregue"),
-    receitaBruta: somar(viagens, "valorEntregue"),
+    ...somarReceitas(viagens.map((viagem) => repartirReceita(viagem.valorEntregue, frotaDoItem(viagem, caminhoesPorId)))),
     combustivel: somar(abastecimentos, "valorTotal"),
     despesasCaminhao: somar(despesasCaminhao, "valor"),
     despesasGerais: somar(despesasGerais, "valor"),

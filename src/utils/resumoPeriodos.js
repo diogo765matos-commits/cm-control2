@@ -3,7 +3,7 @@
 // cada período. Usado no Painel (todos os caminhões) e na página de um
 // caminhão específico (só as semanas dele).
 
-import { PERCENTUAL_MOTORISTA } from "../data/config";
+import { repartirReceita, custoDaEmpresa, fecharReceitas } from "./receitaEmpresa";
 import { taxaEfetivaViagem } from "../data/caminhoes";
 import { converterNumero } from "./formatadores";
 
@@ -16,8 +16,10 @@ import { converterNumero } from "./formatadores";
 // quando está somando semanas de vários caminhões/frotas ao mesmo tempo,
 // ou `frotaPadrao` quando já sabe a frota (ex: um único caminhão).
 function frotaDaSemana(semana, frotaPorCaminhao, frotaPadrao) {
-  if (frotaPorCaminhao && frotaPorCaminhao.has(semana.caminhao_id)) {
-    return frotaPorCaminhao.get(semana.caminhao_id);
+  if (frotaPorCaminhao) {
+    for (const [id, frota] of frotaPorCaminhao) {
+      if (String(id) === String(semana.caminhao_id)) return frota;
+    }
   }
 
   return frotaPadrao;
@@ -50,9 +52,10 @@ export function calcularResumoPorPeriodo(
         fim,
         totalViagens: 0,
         volumeEntregue: 0,
-        receitaBruta: 0,
+        ...repartirReceita(0, null),
         totalCombustivel: 0,
         totalDespesasExtras: 0,
+        custosNaoClassificados: 0,
       });
     }
 
@@ -71,38 +74,46 @@ export function calcularResumoPorPeriodo(
         const volEntregue = converterNumero(viagem.volEntregue) || 0;
         const taxa = taxaEfetivaViagem(viagem, frota);
         periodo.volumeEntregue += volEntregue;
-        periodo.receitaBruta += volEntregue * taxa;
+        const receita = repartirReceita(volEntregue * taxa, frota);
+        Object.keys(receita).forEach((campo) => { periodo[campo] += receita[campo]; });
       });
     });
 
   (semanasAbastecimento || [])
     .filter((semana) => dentroDoFiltro(semana.inicio, inicioFiltro, fimFiltro))
     .forEach((semana) => {
+      const frota = frotaDaSemana(semana, frotaPorCaminhao, frotaPadrao);
       const periodo = pegarPeriodo(semana.inicio, semana.fim);
 
       semana.abastecimentos.forEach((abastecimento) => {
-        periodo.totalCombustivel += abastecimento.valorTotal || 0;
+        const valor = Number(abastecimento.valorTotal) || 0;
+        if (custoDaEmpresa(frota)) periodo.totalCombustivel += valor;
+        else if (frota !== "terceirizada") periodo.custosNaoClassificados += valor;
       });
     });
 
   (semanasDespesas || [])
     .filter((semana) => dentroDoFiltro(semana.inicio, inicioFiltro, fimFiltro))
     .forEach((semana) => {
+      const frota = frotaDaSemana(semana, frotaPorCaminhao, frotaPadrao);
       const periodo = pegarPeriodo(semana.inicio, semana.fim);
 
       semana.despesas.forEach((despesa) => {
-        periodo.totalDespesasExtras += Number(despesa.valor) || 0;
+        const valor = Number(despesa.valor) || 0;
+        if (custoDaEmpresa(frota)) periodo.totalDespesasExtras += valor;
+        else if (frota !== "terceirizada") periodo.custosNaoClassificados += valor;
       });
     });
 
   return Array.from(periodos.values())
-    .map((periodo) => {
-      const pagamentoMotoristas = periodo.receitaBruta * PERCENTUAL_MOTORISTA;
+    .map((brutoPeriodo) => {
+      const periodo = fecharReceitas(brutoPeriodo);
+      const pagamentoMotoristas = periodo.pagamentoMotoristas;
       const gastos =
         periodo.totalCombustivel +
         periodo.totalDespesasExtras +
         pagamentoMotoristas;
-      const lucro = periodo.receitaBruta - gastos;
+      const lucro = periodo.receitaEmpresa - gastos;
 
       return {
         ...periodo,
@@ -115,12 +126,13 @@ export function calcularResumoPorPeriodo(
 }
 
 export function somarPeriodos(periodos) {
-  return periodos.reduce(
+  const soma = periodos.reduce(
     (soma, periodo) => ({
       totalViagens: soma.totalViagens + periodo.totalViagens,
       volumeEntregue: soma.volumeEntregue + periodo.volumeEntregue,
-      receitaBruta: soma.receitaBruta + periodo.receitaBruta,
+      ...Object.fromEntries(Object.keys(repartirReceita(0, null)).map((campo) => [campo, soma[campo] + periodo[campo]])),
       totalCombustivel: soma.totalCombustivel + periodo.totalCombustivel,
+      custosNaoClassificados: soma.custosNaoClassificados + periodo.custosNaoClassificados,
       totalDespesasExtras:
         soma.totalDespesasExtras + periodo.totalDespesasExtras,
       pagamentoMotoristas:
@@ -130,11 +142,14 @@ export function somarPeriodos(periodos) {
     {
       totalViagens: 0,
       volumeEntregue: 0,
-      receitaBruta: 0,
+      ...repartirReceita(0, null),
       totalCombustivel: 0,
       totalDespesasExtras: 0,
+      custosNaoClassificados: 0,
       pagamentoMotoristas: 0,
       lucro: 0,
     }
   );
+  const fechado = fecharReceitas(soma);
+  return { ...fechado, lucro: fechado.receitaEmpresa - fechado.pagamentoMotoristas - fechado.totalCombustivel - fechado.totalDespesasExtras };
 }

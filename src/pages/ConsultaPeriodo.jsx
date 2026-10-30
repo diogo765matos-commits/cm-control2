@@ -192,6 +192,16 @@ function Resumo({ titulo, valor }) {
   return <article className="consulta-resumo-card"><span>{titulo}</span><strong>{valor}</strong></article>;
 }
 
+function ReceitaResumo({ totais }) {
+  return <>
+    <Resumo titulo="Receita da C&M" valor={formatarMoeda(totais.receitaEmpresa)} />
+    <Resumo titulo="Bruto dos terceirizados" valor={formatarMoeda(totais.brutoTerceirizados)} />
+    <Resumo titulo="C&M dos terceirizados (11%)" valor={formatarMoeda(totais.comissaoCM)} />
+    <Resumo titulo="Caminhoneiros (89%, antes de encargos)" valor={formatarMoeda(totais.participacaoCaminhoneiros)} />
+    {totais.brutoNaoClassificado !== 0 && <Resumo titulo="Bruto sem frota identificada (fora da receita C&M)" valor={formatarMoeda(totais.brutoNaoClassificado)} />}
+  </>;
+}
+
 function CaminhaoCard({ grupo }) {
   const { caminhao, registros, totais } = grupo;
   const unidade = unidadeVisivel(caminhao.frota);
@@ -213,6 +223,7 @@ function CaminhaoCard({ grupo }) {
         <Resumo titulo="Viagens" valor={totais.quantidadeViagens} />
         <Resumo titulo={`Entregue (${unidade})`} valor={formatarNumero(caminhao.frota === FROTA_BAGACO ? totais.toneladasEntregues : caminhao.frota ? totais.volumeEntregueM3 : totais.volumeUnidadeDesconhecida)} />
         <Resumo titulo="Valor bruto" valor={formatarMoeda(totais.receitaBruta)} />
+        <ReceitaResumo totais={totais} />
         <Resumo titulo="Abastecimentos" valor={formatarMoeda(totais.combustivel)} />
         <Resumo titulo="Despesas do caminhão" valor={formatarMoeda(totais.despesasCaminhao)} />
         {registros.icms.length > 0 && <Resumo titulo="ICMS" valor={formatarMoeda(totais.icms)} />}
@@ -420,7 +431,8 @@ function ConsultaPeriodo() {
           <Resumo titulo="Volume entregue (m³)" valor={formatarNumero(dadosExibidos.totais.volumeEntregueM3)} />
           <Resumo titulo="Toneladas entregues (t)" valor={formatarNumero(dadosExibidos.totais.toneladasEntregues)} />
           {dadosExibidos.totais.volumeUnidadeDesconhecida > 0 && <Resumo titulo="Volume (unidade não identificada)" valor={formatarNumero(dadosExibidos.totais.volumeUnidadeDesconhecida)} />}
-          <Resumo titulo="Receita bruta" valor={formatarMoeda(dadosExibidos.totais.receitaBruta)} />
+          <Resumo titulo="Faturamento bruto geral" valor={formatarMoeda(dadosExibidos.totais.receitaBruta)} />
+          <ReceitaResumo totais={dadosExibidos.totais} />
           <Resumo titulo="Combustível" valor={formatarMoeda(dadosExibidos.totais.combustivel)} />
           <Resumo titulo="Despesas dos caminhões" valor={formatarMoeda(dadosExibidos.totais.despesasCaminhao)} />
           {escopo === ESCOPO_TODOS && <Resumo titulo="Despesas gerais da empresa" valor={formatarMoeda(dadosExibidos.totais.despesasGerais)} />}

@@ -1,3 +1,4 @@
+import { repartirReceita, somarReceitas } from "./receitaEmpresa";
 // Monta e baixa o workbook (ExcelJS) do "Fechamento Financeiro de Transporte"
 // usado nos botões "Relatório Semanal (Excel)" da Frota e de cada caminhão.
 //
@@ -104,6 +105,7 @@ async function construirEBaixarWorkbook({ ExcelJS, nomeArquivo, blocos }) {
       });
 
       if (!teveDadosGeral) return;
+      adicionarParticipacoes(abaGeral, viagens, taxa, comFiscal);
 
       teveAlgumDado = true;
 
@@ -134,6 +136,7 @@ async function construirEBaixarWorkbook({ ExcelJS, nomeArquivo, blocos }) {
               taxa,
               viagens: viagensDoCaminhao,
             });
+            adicionarParticipacoes(aba, viagensDoCaminhao, taxa, comFiscal);
           });
       }
     }
@@ -144,6 +147,39 @@ async function construirEBaixarWorkbook({ ExcelJS, nomeArquivo, blocos }) {
   const buffer = await wb.xlsx.writeBuffer();
   baixarArquivo(buffer, nomeArquivo);
   return true;
+}
+
+// Seção informativa adicional; as linhas e regras do fechamento acima permanecem intactas.
+function adicionarParticipacoes(ws, viagens, taxa, comFiscal) {
+  const colValor = comFiscal ? 9 : 5;
+  const ultimaColuna = comFiscal ? 13 : 6;
+  const totais = somarReceitas(viagens.map(v => repartirReceita(
+    (converterNumero(v.volEntregue) || 0) * (converterNumero(v.taxa) || taxa), v.frota
+  )));
+  const linhas = [
+    ["RECEITA DA C&M E PARTICIPAÇÕES (ANTES DE ENCARGOS)"],
+    ["Faturamento bruto geral", totais.receitaBruta],
+    ["Faturamento bruto dos terceirizados", totais.brutoTerceirizados],
+    ["Comissão C&M dos terceirizados (11%)", totais.comissaoCM],
+    ["Participação bruta dos caminhoneiros (89%)", totais.participacaoCaminhoneiros],
+    ["Receita da C&M (própria + comissão)", totais.receitaEmpresa],
+    ["Bruto sem frota identificada (não incluído na receita C&M)", totais.brutoNaoClassificado],
+    ["Participação bruta não é líquido a pagar. Fechamento original preservado."],
+  ];
+  let row = ws.rowCount + 3;
+  for (const [rotulo, valor] of linhas) {
+    ws.mergeCells(row, 1, row, colValor - 1);
+    ws.getCell(row, 1).value = rotulo;
+    ws.getCell(row, 1).alignment = { wrapText: true, vertical: "middle" };
+    ws.getCell(row, 1).font = { bold: true };
+    if (valor !== undefined) {
+      ws.mergeCells(row, colValor, row, ultimaColuna);
+      ws.getCell(row, colValor).value = valor;
+      ws.getCell(row, colValor).numFmt = NUM_MOEDA;
+    }
+    ws.getRow(row).height = 30;
+    row++;
+  }
 }
 
 function nomeAbaUnico(placa, nomesUsados) {

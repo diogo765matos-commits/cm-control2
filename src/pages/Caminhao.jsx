@@ -687,6 +687,7 @@ function Caminhao() {
           viagensDoPeriodo.push({
             ...viagem,
             placa: caminhao.placa,
+            frota: caminhao.frota,
             taxa: taxaEfetivaViagem(viagem, caminhao.frota),
           });
         });
@@ -2978,6 +2979,7 @@ function Caminhao() {
           valor={formatarMoeda(totalCaminhao.receitaBruta)}
           legenda="No período"
         />
+{ehTerceirizada && <><KpiCard icone="🏢" cor={CORES_KPI.verde} rotulo="Receita C&M (11%)" valor={formatarMoeda(totalCaminhao.comissaoCM)} legenda="Comissão sobre o bruto" /><KpiCard icone="🚚" cor={CORES_KPI.azul} rotulo="Caminhoneiro (89%)" valor={formatarMoeda(totalCaminhao.participacaoCaminhoneiros)} legenda="Participação bruta, antes de encargos" /></>}
 {!ehTerceirizada && <><KpiCard
               icone="📈"
               cor={CORES_KPI.verde}

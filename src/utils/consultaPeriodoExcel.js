@@ -144,6 +144,20 @@ function nomeUnico(placa, usados) {
   return nome;
 }
 
+function participacoes(ws, row, totais) {
+  return tabela(ws, { row, titulo: "RECEITA DA C&M E PARTICIPAÇÕES • antes de encargos e sem alterar fechamentos",
+    headers: ["INDICADOR", "VALOR (R$)"], spans: [9, 4], formatos: { 2: MOEDA },
+    linhas: [
+      ["Faturamento bruto geral", totais.receitaBruta],
+      ["Faturamento bruto dos terceirizados", totais.brutoTerceirizados],
+      ["Comissão C&M sobre terceirizados (11%)", totais.comissaoCM],
+      ["Participação bruta dos caminhoneiros (89%)", totais.participacaoCaminhoneiros],
+      ["Receita da C&M (própria + comissão)", totais.receitaEmpresa],
+      ["Bruto sem frota identificada (não incluído na receita C&M)", totais.brutoNaoClassificado],
+    ], totalLabel: "Participação bruta não é líquido a pagar",
+  });
+}
+
 function finalizar(ws) {
   ws.pageSetup.printArea = `A1:M${ws.rowCount}`;
 }
@@ -168,11 +182,12 @@ export function construirWorkbookConsulta({ ExcelJS, relatorio, grupos, logoBase
   ]);
   let row = tabela(resumo, {
     row: 7, titulo: "CONSOLIDADO POR CAMINHÃO • volumes identificados por unidade",
-    headers: ["PLACA", "FROTA", "CAMINHÃO", "MOTORISTA", "VIAGENS", "UNIDADE", "VOL. ENTREGUE", "RECEITA BRUTA (R$)", "COMBUSTÍVEL (R$)", "DESPESAS (R$)", "ICMS (R$)"],
+    headers: ["PLACA", "FROTA", "CAMINHÃO", "MOTORISTA", "VIAGENS", "UNIDADE", "VOL. ENTREGUE", "FATURAMENTO BRUTO (R$)", "COMBUSTÍVEL (R$)", "DESPESAS (R$)", "ICMS (R$)"],
     linhas: grupos.map(g => [g.caminhao.placa || "Sem placa", g.nomeFrota, g.caminhao.modelo || "Caminhão", g.caminhao.motorista || "Não informado", g.totais.quantidadeViagens, g.unidade, g.volumeEntregue, g.totais.receitaBruta, g.totais.combustivel, g.totais.despesasCaminhao, g.totais.icms]),
     formatos: { 5: "0", 7: QUANTIDADE, 8: MOEDA, 9: MOEDA, 10: MOEDA, 11: MOEDA },
     totais: { 5: relatorio.totais.quantidadeViagens, 8: relatorio.totais.receitaBruta, 9: relatorio.totais.combustivel, 10: relatorio.totais.despesasCaminhao, 11: relatorio.totais.icms }, filtro: true, centralizadas: [5, 6],
   });
+  row = participacoes(resumo, row, relatorio.totais);
   // Never add quantities of different units together.
   row = tabela(resumo, {
     row, titulo: "VOLUMES DO PERÍODO • unidades separadas", headers: ["UNIDADE", "VOL. FISCAL", "VOL. ENTREGUE", "DIFERENÇA"],
@@ -206,6 +221,7 @@ export function construirWorkbookConsulta({ ExcelJS, relatorio, grupos, logoBase
       formatos: { 3: "dd/mm/yyyy", 4: QUANTIDADE, 5: QUANTIDADE, 6: QUANTIDADE, 9: MOEDA, 10: MOEDA, 11: MOEDA, 12: MOEDA, 13: "dd/mm/yyyy" },
       totais: { 4: somar(viagens, "volumeFiscal"), 5: somar(viagens, "volumeEntregue"), 6: somar(viagens, "diferenca"), 10: somar(viagens, "valorFiscal"), 11: somar(viagens, "complemento"), 12: somar(viagens, "valorFisico") }, filtro: true, centralizadas: [3, 7, 13],
     });
+    proxima = participacoes(ws, proxima, grupo.totais);
     if (registros.abastecimentos.length) proxima = tabela(ws, { row: proxima, titulo: "ABASTECIMENTOS", headers: ["DATA", "POSTO", "KM", "LITROS DIESEL", "LITROS ARLA", "VALOR TOTAL (R$)"],
       linhas: registros.abastecimentos.map(v => [dataExcel(v.data), v.posto || "", v.km ?? "", v.litrosDiesel ?? "", v.litrosArla ?? "", Number(v.valorTotal) || 0]),
       formatos: { 1: "dd/mm/yyyy", 3: QUANTIDADE, 4: QUANTIDADE, 5: QUANTIDADE, 6: MOEDA },

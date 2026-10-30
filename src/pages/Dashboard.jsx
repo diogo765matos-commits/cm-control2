@@ -167,9 +167,9 @@ function Dashboard() {
             ),
             db.select(
               "abastecimento_semanas",
-              "select=inicio,fim,abastecimentos"
+              "select=inicio,fim,abastecimentos,caminhao_id"
             ),
-            db.select("despesas_semanas", "select=inicio,fim,despesas"),
+            db.select("despesas_semanas", "select=inicio,fim,despesas,caminhao_id"),
           ]);
 
         if (!ativo) return;
@@ -289,9 +289,9 @@ function Dashboard() {
         />
         <Indicador
           tipo="bruto"
-          titulo="Valor bruto produzido"
-          valor={formatarMoeda(totalGeral.receitaBruta)}
-          detalhe="Total bruto do período"
+          titulo="Receita da C&M"
+          valor={formatarMoeda(totalGeral.receitaEmpresa)}
+          detalhe={`Bruto geral: ${formatarMoeda(totalGeral.receitaBruta)}`}
         />
         <Indicador
           tipo="viagens"
@@ -303,10 +303,13 @@ function Dashboard() {
           tipo="motoristas"
           titulo="Pagamento de motoristas"
           valor={formatarMoeda(totalGeral.pagamentoMotoristas)}
-          detalhe="Conforme cálculo financeiro atual"
+          detalhe="10% da frota própria (C&M e Bagaço)"
         />
       </section>
 
+      <p>Terceirizados: bruto {formatarMoeda(totalGeral.brutoTerceirizados)} · C&M (11%): {formatarMoeda(totalGeral.comissaoCM)} · Caminhoneiros (89%, antes de encargos): {formatarMoeda(totalGeral.participacaoCaminhoneiros)}</p>
+      {totalGeral.brutoNaoClassificado !== 0 && <p role="alert">Bruto com frota não identificada: {formatarMoeda(totalGeral.brutoNaoClassificado)}. Não incluído na receita da C&M.</p>}
+      {totalGeral.custosNaoClassificados !== 0 && <p role="alert">Custos com frota não identificada: {formatarMoeda(totalGeral.custosNaoClassificados)}. Resultado financeiro incompleto até conferir a classificação.</p>}
       <section className="dashboard-producao" aria-labelledby="producao-titulo">
         <div className="dashboard-producao-cabecalho">
           <div>

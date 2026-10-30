@@ -1,3 +1,4 @@
+import { repartirReceita, somarReceitas, custoDaEmpresa } from "../utils/receitaEmpresa";
 // Página de detalhe de um período (semana) específico, aberta ao clicar
 // numa linha do "Resumo por Período" no Painel. Mostra as viagens (NFs)
 // daquela semana em todos os caminhões, além dos gráficos de receita e
@@ -7,7 +8,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../lib/supabase";
 import {
-  PERCENTUAL_MOTORISTA,
   VALOR_POR_VOLUME,
   VALOR_POR_TONELADA_BAGACO,
 } from "../data/config";
@@ -32,6 +32,7 @@ function PeriodoDetalhe() {
   const [erro, setErro] = useState("");
 
   const [viagens, setViagens] = useState([]);
+  const [custosNaoClassificados, setCustosNaoClassificados] = useState(0);
   const [totalCombustivel, setTotalCombustivel] = useState(0);
   const [totalDespesasExtras, setTotalDespesasExtras] = useState(0);
 
@@ -51,11 +52,11 @@ function PeriodoDetalhe() {
             ),
             db.select(
               "abastecimento_semanas",
-              `select=abastecimentos&inicio=eq.${inicio}&fim=eq.${fim}`
+              `select=abastecimentos,caminhao_id&inicio=eq.${inicio}&fim=eq.${fim}`
             ),
             db.select(
               "despesas_semanas",
-              `select=despesas&inicio=eq.${inicio}&fim=eq.${fim}`
+              `select=despesas,caminhao_id&inicio=eq.${inicio}&fim=eq.${fim}`
             ),
           ]);
 
@@ -82,6 +83,7 @@ function PeriodoDetalhe() {
 
             linhas.push({
               id: viagem.id,
+              ...repartirReceita(volEntregue * taxa, caminhao?.frota),
               caminhao: rotulo,
               data: viagem.data,
               nf: viagem.nf,
@@ -100,8 +102,13 @@ function PeriodoDetalhe() {
 
         linhas.sort((a, b) => (a.data < b.data ? -1 : 1));
 
+        let custosSemFrota = 0;
         let combustivel = 0;
         semanasAbastecimento.forEach((semana) => {
+          if (!custoDaEmpresa(caminhoesPorId[semana.caminhao_id]?.frota)) {
+            if (caminhoesPorId[semana.caminhao_id]?.frota !== "terceirizada") custosSemFrota += (semana.abastecimentos || semana.despesas || []).reduce((s, v) => s + (Number(v.valorTotal ?? v.valor) || 0), 0);
+            return;
+          }
           (semana.abastecimentos || []).forEach((a) => {
             combustivel += a.valorTotal || 0;
           });
@@ -109,11 +116,16 @@ function PeriodoDetalhe() {
 
         let despesas = 0;
         semanasDespesas.forEach((semana) => {
+          if (!custoDaEmpresa(caminhoesPorId[semana.caminhao_id]?.frota)) {
+            if (caminhoesPorId[semana.caminhao_id]?.frota !== "terceirizada") custosSemFrota += (semana.abastecimentos || semana.despesas || []).reduce((s, v) => s + (Number(v.valorTotal ?? v.valor) || 0), 0);
+            return;
+          }
           (semana.despesas || []).forEach((d) => {
             despesas += Number(d.valor) || 0;
           });
         });
 
+        setCustosNaoClassificados(custosSemFrota);
         setViagens(linhas);
         setTotalCombustivel(combustivel);
         setTotalDespesasExtras(despesas);
@@ -144,9 +156,10 @@ function PeriodoDetalhe() {
 
   const totalViagens = viagens.length;
   const receitaBrutaTotal = viagens.reduce((s, v) => s + v.valorFisico, 0);
-  const pagamentoMotoristas = receitaBrutaTotal * PERCENTUAL_MOTORISTA;
+  const receita = somarReceitas(viagens);
+  const pagamentoMotoristas = receita.pagamentoMotoristas;
   const gastos = totalCombustivel + totalDespesasExtras + pagamentoMotoristas;
-  const lucro = receitaBrutaTotal - gastos;
+  const lucro = receita.receitaEmpresa - gastos;
 
   const totalValorFiscal = viagens.reduce((s, v) => s + v.valorFiscal, 0);
   const totalComplemento = viagens.reduce((s, v) => s + v.complemento, 0);
@@ -155,7 +168,7 @@ function PeriodoDetalhe() {
   const receitaPorCaminhaoMapa = new Map();
   viagens.forEach((v) => {
     const atual = receitaPorCaminhaoMapa.get(v.caminhao) || 0;
-    receitaPorCaminhaoMapa.set(v.caminhao, atual + v.valorFisico);
+    receitaPorCaminhaoMapa.set(v.caminhao, atual + v.receitaEmpresa);
   });
   const dadosReceitaPorCaminhao = Array.from(
     receitaPorCaminhaoMapa,
@@ -187,9 +200,9 @@ function PeriodoDetalhe() {
         <KpiCard
           icone="💰"
           cor={CORES_KPI.verde}
-          rotulo="Receita Bruta"
-          valor={formatarMoeda(receitaBrutaTotal)}
-          legenda="Nesta semana"
+          rotulo="Receita da C&M"
+          valor={formatarMoeda(receita.receitaEmpresa)}
+          legenda={`Bruto geral: ${formatarMoeda(receitaBrutaTotal)}`}
         />
         <KpiCard
           icone="⛽"
@@ -208,22 +221,25 @@ function PeriodoDetalhe() {
         <KpiCard
           icone="🧑‍✈️"
           cor={CORES_KPI.dourado}
-          rotulo="Motoristas (10%)"
+          rotulo="Motoristas próprios (10%)"
           valor={formatarMoeda(pagamentoMotoristas)}
           legenda="Nesta semana"
         />
         <KpiCard
           icone="📈"
           cor={CORES_KPI.verde}
-          rotulo="Lucro da Frota"
+          rotulo={custosNaoClassificados || receita.brutoNaoClassificado ? "Resultado parcial C&M" : "Lucro da Frota"}
           valor={formatarMoeda(lucro)}
           legenda="Nesta semana"
         />
       </div>
 
+      <p>Terceirizados: bruto {formatarMoeda(receita.brutoTerceirizados)} · C&M (11%): {formatarMoeda(receita.comissaoCM)} · Caminhoneiros (89%, antes de encargos): {formatarMoeda(receita.participacaoCaminhoneiros)}</p>
+      {receita.brutoNaoClassificado !== 0 && <p role="alert">Frota não identificada: {formatarMoeda(receita.brutoNaoClassificado)} não incluídos na receita C&M.</p>}
+      {custosNaoClassificados !== 0 && <p role="alert">Custos sem frota identificada: {formatarMoeda(custosNaoClassificados)}. Não incluídos no resultado parcial.</p>}
       <div style={estiloGridGraficos}>
         <div style={estiloCard}>
-          <h3 style={estiloTituloCard}>Receita Bruta por Caminhão</h3>
+          <h3 style={estiloTituloCard}>Receita da C&M por Caminhão</h3>
           <BarChart dados={dadosReceitaPorCaminhao} formatarValor={formatarMoeda} />
         </div>
 
