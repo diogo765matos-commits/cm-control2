@@ -19,6 +19,7 @@ import {
   getSemanasViagens,
   criarSemanaViagens as criarSemanaViagensApi,
   adicionarViagem as adicionarViagemApi,
+  editarViagem as editarViagemApi,
   excluirViagem as excluirViagemApi,
   excluirSemanaViagens as excluirSemanaViagensApi,
   atualizarSemanaViagens as atualizarSemanaViagensApi,
@@ -56,6 +57,7 @@ import {
   somarPeriodos,
 } from "../utils/resumoPeriodos";
 import { gerarEBaixarPlanilha } from "../utils/relatorioExcel";
+import EditarViagem from "../components/EditarViagem";
 import PageHeader from "../components/PageHeader";
 import DateRangeFilter from "../components/DateRangeFilter";
 import KpiCard from "../components/KpiCard";
@@ -266,6 +268,7 @@ function Caminhao() {
 
   const [semanaAberta, setSemanaAberta] = useState(null);
   const [mostrarNovaViagem, setMostrarNovaViagem] = useState(false);
+  const [edicaoViagem, setEdicaoViagem] = useState(null);
 
   const [novaViagem, setNovaViagem] = useState({
     data: "",
@@ -822,6 +825,15 @@ function Caminhao() {
     } catch (e) {
       alert("Não foi possível salvar a viagem: " + e.message);
     }
+  }
+
+  async function salvarEdicaoViagem(semana, original, dados) {
+    const atualizada = await editarViagemApi(semana, original, dados);
+    if (atualizada) {
+      setSemanas(atuais => atuais.map(item => item.id === atualizada.id ? atualizada : item));
+      setSemanaAberta(atual => atual?.id === atualizada.id ? atualizada : atual);
+    }
+    setEdicaoViagem(atual => atual === edicaoViagem ? null : atual);
   }
 
   async function excluirViagem(idViagem) {
@@ -1562,6 +1574,7 @@ function Caminhao() {
                       style={estiloBotaoVoltarSemana}
                       onClick={() => {
                         setSemanaAberta(null);
+                        setEdicaoViagem(null);
                         setMostrarNovaViagem(false);
                       }}
                     >
@@ -1585,8 +1598,10 @@ function Caminhao() {
                   </div>
 
                   <button
+                    disabled={!!edicaoViagem}
                     style={estiloBotaoDourado}
                     onClick={() => {
+                      setEdicaoViagem(null);
                       setNovaViagem((atual) => ({
                         ...atual,
                         taxa: atual.taxa || taxaCaminhao,
@@ -1597,6 +1612,7 @@ function Caminhao() {
                     + Nova Viagem
                   </button>
                   <button
+  disabled={!!edicaoViagem}
   onClick={() => excluirSemanaViagens(semanaAberta.id)}
   style={{
     background: "#dc3545",
@@ -1611,6 +1627,13 @@ function Caminhao() {
   Excluir Semana
 </button>
                 </div>
+
+                {edicaoViagem?.semana.id === semanaAberta.id && (
+                  <EditarViagem key={`${edicaoViagem.semana.id}-${edicaoViagem.viagem.id}`}
+                    semana={edicaoViagem.semana} viagem={edicaoViagem.viagem} frota={caminhao.frota}
+                    onSave={salvarEdicaoViagem} onCancel={() => setEdicaoViagem(null)}
+                    estiloSalvar={estiloBotaoDourado} estiloCancelar={estiloBotaoCancelar} />
+                )}
 
                 {mostrarNovaViagem && (
                   <div style={estiloFormulario} className="caminhao-formulario">
@@ -1793,6 +1816,7 @@ function Caminhao() {
                           <th style={estiloTh}>
                             Entrega
                           </th>
+                          <th style={estiloTh}>Ações</th>
                         </tr>
                       </thead>
 
@@ -1853,7 +1877,12 @@ function Caminhao() {
                               </td>
 
                             <td style={estiloTd}>
+  <button disabled={!!edicaoViagem} style={{ ...estiloBotaoEditar, marginRight: 8 }} onClick={() => {
+    setMostrarNovaViagem(false);
+    setEdicaoViagem({ semana: semanaAberta, viagem });
+  }}>Editar</button>
   <button
+    disabled={!!edicaoViagem}
     onClick={() => excluirViagem(viagem.id)}
     style={{
       background: "#dc3545",
