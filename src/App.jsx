@@ -17,6 +17,7 @@ import ConsultaPeriodo from "./pages/ConsultaPeriodo";
 import { auth } from "./lib/supabase";
 import "./styles/responsive.css";
 import "./styles/v2.css";
+import "./styles/interface.css";
 
 function App() {
   const [sessao, setSessao] = useState(() => auth.sessaoAtual());
