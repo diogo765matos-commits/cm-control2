@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { frotaEfetivaViagem, descricoesPercentuais } from "../utils/receitaEmpresa";
 import { db } from "../lib/supabase";
 import {
   FROTA_BAGACO,
@@ -215,11 +216,14 @@ function Dashboard() {
     opcoesResumo
   );
   const totalGeral = somarPeriodos(periodos);
+  const taxasRelatorio = descricoesPercentuais(totalGeral);
 
   const resumoFrota = (frota) => {
-    const semanasDaFrota = semanasViagens.filter(
-      (semana) => frotaPorCaminhao.get(semana.caminhao_id) === frota
-    );
+    const semanasDaFrota = semanasViagens.map((semana) => ({
+      ...semana,
+      viagens: semana.viagens.filter((viagem) =>
+        frotaEfetivaViagem(viagem, frotaPorCaminhao.get(semana.caminhao_id)) === frota),
+    })).filter((semana) => semana.viagens.length > 0);
 
     return somarPeriodos(
       calcularResumoPorPeriodo(semanasDaFrota, [], [], opcoesResumo)
@@ -303,11 +307,11 @@ function Dashboard() {
           tipo="motoristas"
           titulo="Pagamento de motoristas"
           valor={formatarMoeda(totalGeral.pagamentoMotoristas)}
-          detalhe="10% da frota própria (C&M e Bagaço)"
+          detalhe={`${taxasRelatorio.motorista} da frota própria (C&M e Bagaço)`}
         />
       </section>
 
-      <p>Terceirizados: bruto {formatarMoeda(totalGeral.brutoTerceirizados)} · C&M (11%): {formatarMoeda(totalGeral.comissaoCM)} · Caminhoneiros (89%, antes de encargos): {formatarMoeda(totalGeral.participacaoCaminhoneiros)}</p>
+      <p>Terceirizados: bruto {formatarMoeda(totalGeral.brutoTerceirizados)} · C&M ({taxasRelatorio.comissao}): {formatarMoeda(totalGeral.comissaoCM)} · Caminhoneiros ({taxasRelatorio.repasse}, antes de encargos): {formatarMoeda(totalGeral.participacaoCaminhoneiros)}</p>
       {totalGeral.brutoNaoClassificado !== 0 && <p role="alert">Bruto com frota não identificada: {formatarMoeda(totalGeral.brutoNaoClassificado)}. Não incluído na receita da C&M.</p>}
       {totalGeral.custosNaoClassificados !== 0 && <p role="alert">Custos com frota não identificada: {formatarMoeda(totalGeral.custosNaoClassificados)}. Resultado financeiro incompleto até conferir a classificação.</p>}
       <section className="dashboard-producao" aria-labelledby="producao-titulo">

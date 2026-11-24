@@ -1,4 +1,7 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { AlocacoesCaminhaoV2 } from "../v2/FrotaV2";
+import { ListaDespesasPerfilV2 } from "../v2/DespesasV2";
+import { descricoesPercentuais, repartirReceita } from "../utils/receitaEmpresa";
 import { useEffect, useRef, useState } from "react";
 import {
   getCaminhoes,
@@ -506,6 +509,7 @@ function Caminhao() {
   );
 
   const totalCaminhao = somarPeriodos(periodosCaminhao);
+  const legendasPercentuais = descricoesPercentuais(totalCaminhao);
 
   const periodosRelatorioCaminhao = Array.from(
     new Map(
@@ -1143,6 +1147,10 @@ function Caminhao() {
           📊 Relatório Semanal (Excel)
         </button>
       </PageHeader>
+      {!ehBagaco && <div className="v2-actions">
+        <Link to={`/lancamentos/viagem?caminhao=${caminhao.id}`}>Nova viagem</Link>
+        <Link to={`/lancamentos/despesa?caminhao=${caminhao.id}`}>Nova despesa</Link>
+      </div>}
 
       {mostrarRelatorio && (
         <div
@@ -1308,7 +1316,7 @@ function Caminhao() {
         ) : (
           <div className="caminhao-identificacao-dados">
             <span><strong>Placa:</strong> {caminhao.placa}</span>
-            <span><strong>Motorista:</strong> {caminhao.motorista}</span>
+            <span><strong>{ehBagaco ? "Motorista:" : "Motorista no cadastro legado:"}</strong> {caminhao.motorista || "—"}</span>
             <span className="caminhao-frota-badge">
               {FROTAS.find((f) => f.tipo === caminhao.frota)?.titulo ??
                 "Frota C&M"}
@@ -1347,7 +1355,7 @@ function Caminhao() {
             </button>
           )}
 
-          {!ehTerceirizada && (
+          {(
             <button
               onClick={() => setAbaAtiva("despesas")}
               style={estiloAba(abaAtiva === "despesas")}
@@ -1356,6 +1364,7 @@ function Caminhao() {
             </button>
           )}
 
+{!ehBagaco && <button onClick={() => setAbaAtiva("alocacoes")} style={estiloAba(abaAtiva === "alocacoes")} aria-pressed={abaAtiva === "alocacoes"}>Alocações</button>}
 <button
   onClick={() => setAbaAtiva("financeiro")}
   style={estiloAba(abaAtiva === "financeiro")}
@@ -1382,6 +1391,8 @@ function Caminhao() {
 )}
         </div>
 
+        {!ehBagaco && abaAtiva === "alocacoes" && <AlocacoesCaminhaoV2 caminhao={caminhao} />}
+        {!ehBagaco && abaAtiva === "despesas" && <ListaDespesasPerfilV2 tipo="caminhao" id={caminhao.id} inicio={filtroInicio} fim={filtroFim} />}
         {/* VIAGENS */}
 
         {abaAtiva === "viagens" && (
@@ -1601,6 +1612,10 @@ function Caminhao() {
                     disabled={!!edicaoViagem}
                     style={estiloBotaoDourado}
                     onClick={() => {
+                      if (!ehBagaco) {
+                        navigate(`/lancamentos/viagem?caminhao=${caminhao.id}`);
+                        return;
+                      }
                       setEdicaoViagem(null);
                       setNovaViagem((atual) => ({
                         ...atual,
@@ -1794,6 +1809,7 @@ function Caminhao() {
                         <tr>
                           <th style={estiloTh}>Data</th>
                           <th style={estiloTh}>NF</th>
+                          {!ehBagaco && <th style={estiloTh}>Motorista da viagem</th>}
                           {!ehBagaco && (
                             <th style={estiloTh}>CTe</th>
                           )}
@@ -1834,6 +1850,7 @@ function Caminhao() {
                                 {viagem.nf || "-"}
                               </td>
 
+                              {!ehBagaco && <td style={estiloTd}>{viagem.motoristaNome || "—"}</td>}
                               {!ehBagaco && (
                                 <td style={estiloTd}>
                                   {viagem.cte || "-"}
@@ -2671,7 +2688,7 @@ function Caminhao() {
         )}
 {/* DESPESAS EXTRAS */}
 
-{abaAtiva === "despesas" && (
+{ehBagaco && abaAtiva === "despesas" && (
   <div>
 
     <div style={estiloCabecalhoSecao} className="caminhao-cabecalho-secao">
@@ -3008,7 +3025,7 @@ function Caminhao() {
           valor={formatarMoeda(totalCaminhao.receitaBruta)}
           legenda="No período"
         />
-{ehTerceirizada && <><KpiCard icone="🏢" cor={CORES_KPI.verde} rotulo="Receita C&M (11%)" valor={formatarMoeda(totalCaminhao.comissaoCM)} legenda="Comissão sobre o bruto" /><KpiCard icone="🚚" cor={CORES_KPI.azul} rotulo="Caminhoneiro (89%)" valor={formatarMoeda(totalCaminhao.participacaoCaminhoneiros)} legenda="Participação bruta, antes de encargos" /></>}
+{ehTerceirizada && <><KpiCard icone="🏢" cor={CORES_KPI.verde} rotulo={`Receita C&M (${legendasPercentuais.comissao})`} valor={formatarMoeda(totalCaminhao.comissaoCM)} legenda="Comissão sobre o bruto" /><KpiCard icone="🚚" cor={CORES_KPI.azul} rotulo={`Caminhoneiro (${legendasPercentuais.repasse})`} valor={formatarMoeda(totalCaminhao.participacaoCaminhoneiros)} legenda="Participação bruta, antes de encargos" /></>}
 {!ehTerceirizada && <><KpiCard
               icone="📈"
               cor={CORES_KPI.verde}
@@ -3055,7 +3072,7 @@ function Caminhao() {
             /><KpiCard
               icone="👤"
               cor={CORES_KPI.azul}
-              rotulo={`Motoristas (${PERCENTUAL_MOTORISTA * 100}%)`}
+              rotulo={`Motoristas (${legendasPercentuais.motorista})`}
               valor={formatarMoeda(totalCaminhao.pagamentoMotoristas)}
               legenda="No período"
             /><KpiCard
@@ -3089,7 +3106,7 @@ function Caminhao() {
                 <th style={estiloTh}>Valor Bruto</th>
                 {!ehTerceirizada && (
                   <>
-                    <th style={estiloTh}>Motorista (10%)</th>
+                    <th style={estiloTh}>Motorista ({legendasPercentuais.motorista})</th>
                     <th style={estiloTh}>Fica p/ Empresa</th>
                   </>
                 )}
@@ -3114,8 +3131,12 @@ function Caminhao() {
                     0
                   );
 
-                  const motoristaSemana =
-                    valorBrutoSemana * PERCENTUAL_MOTORISTA;
+                  const taxaVariavel = !ehBagaco && semana.viagens.some(viagem =>
+                    typeof viagem.percentualAplicado === "number" && viagem.percentualAplicado !== PERCENTUAL_MOTORISTA * 100);
+                  const motoristaSemana = taxaVariavel ? semana.viagens.reduce((total, viagem) => total +
+                    repartirReceita((converterNumero(viagem.volEntregue) || 0) *
+                      taxaEfetivaViagem(viagem, caminhao.frota), caminhao.frota, viagem).pagamentoMotoristas, 0)
+                    : valorBrutoSemana * PERCENTUAL_MOTORISTA;
 
                   const empresaSemana =
                     valorBrutoSemana - motoristaSemana;

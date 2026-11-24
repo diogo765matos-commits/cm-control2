@@ -1,3 +1,4 @@
+import { descricoesPercentuais, frotaEfetivaViagem } from "../utils/receitaEmpresa";
 import { useMemo, useRef, useState } from "react";
 import { formatarData, formatarMoeda, formatarNumero } from "../utils/formatadores";
 import {
@@ -45,8 +46,8 @@ function compararNF(a, b) {
 
 function ordenarPorFrotaECaminhao(itens) {
   return [...itens].sort((a, b) => {
-    const frotaA = a.caminhao?.frota || "desconhecida";
-    const frotaB = b.caminhao?.frota || "desconhecida";
+    const frotaA = frotaEfetivaViagem(a, a.caminhao?.frota) || "desconhecida";
+    const frotaB = frotaEfetivaViagem(b, b.caminhao?.frota) || "desconhecida";
     const ordemFrota = comparadorTexto.compare(tituloFrota(frotaA), tituloFrota(frotaB));
     if (ordemFrota) return ordemFrota;
 
@@ -59,39 +60,42 @@ function ordenarPorFrotaECaminhao(itens) {
   });
 }
 
+function chaveCaminhaoFrota(id, frota) {
+  return `${id}:${frota || ""}`;
+}
+
 function agruparCaminhoes(consulta) {
-  const caminhoes = new Map((consulta.caminhoes || []).map((caminhao) => [String(caminhao.id), caminhao]));
-  const listas = {
-    viagens: consulta.viagens || [],
-    abastecimentos: consulta.abastecimentos || [],
-    despesasCaminhao: consulta.despesasCaminhao || [],
-    icms: consulta.icms || [],
-  };
+  const atuais = new Map((consulta.caminhoes || []).map((caminhao) => [String(caminhao.id), caminhao]));
+  const grupos = new Map();
 
-  Object.values(listas).flat().forEach((item) => {
-    const id = idDoRegistro(item);
-    if (!caminhoes.has(String(id))) {
-      caminhoes.set(String(id), item.caminhao || {
-        id,
-        modelo: "Caminhão não identificado",
-        placa: "",
-        motorista: "",
-        frota: null,
-      });
+  function grupoDe(caminhao) {
+    const chave = chaveCaminhaoFrota(caminhao.id, caminhao.frota);
+    if (!grupos.has(chave)) {
+      grupos.set(chave, { chave, caminhao, registros: {
+        viagens: [], abastecimentos: [], despesasCaminhao: [], icms: [],
+      } });
     }
-  });
+    return grupos.get(chave);
+  }
 
-  return [...caminhoes.values()].sort(compararCaminhoes).map((caminhao) => {
-    const registros = Object.fromEntries(Object.entries(listas).map(([chave, itens]) => [
-      chave,
-      itens.filter((item) => String(idDoRegistro(item)) === String(caminhao.id)),
-    ]));
-    return {
-      caminhao,
-      registros,
-      totais: calcularTotaisConsulta({ ...registros, caminhoes: [caminhao], despesasGerais: [] }),
-    };
-  });
+  atuais.forEach(grupoDe);
+  for (const campo of ["viagens", "abastecimentos", "despesasCaminhao", "icms"]) {
+    for (const item of consulta[campo] || []) {
+      const id = idDoRegistro(item);
+      const caminhao = item.caminhao || atuais.get(String(id)) || {
+        id, modelo: "Caminhão não identificado", placa: "", motorista: "", frota: null,
+      };
+      const frota = campo === "viagens" ? frotaEfetivaViagem(item, caminhao.frota) : caminhao.frota;
+      grupoDe(frota === caminhao.frota ? caminhao : { ...caminhao, frota })
+        .registros[campo].push(item);
+    }
+  }
+
+  return [...grupos.values()].sort((a, b) => compararCaminhoes(a.caminhao, b.caminhao))
+    .map((grupo) => ({
+      ...grupo,
+      totais: calcularTotaisConsulta({ ...grupo.registros, caminhoes: [grupo.caminhao], despesasGerais: [] }),
+    }));
 }
 
 function criarDadosRelatorio(consulta, escopo, rotuloEscopo) {
@@ -100,16 +104,16 @@ function criarDadosRelatorio(consulta, escopo, rotuloEscopo) {
     return {
       ...viagem,
       diferenca,
-      transportadora: viagem.caminhao?.frota === FROTA_TERCEIRIZADA
+      transportadora: frotaEfetivaViagem(viagem, viagem.caminhao?.frota) === FROTA_TERCEIRIZADA
         ? TRANSPORTADORA_TERCEIRIZADA
         : TRANSPORTADORA_CM,
       complemento: diferenca * viagem.taxa,
       valorFisico: viagem.valorEntregue,
     };
   });
-  const viagensBagaco = viagens.filter((viagem) => viagem.caminhao?.frota === FROTA_BAGACO);
-  const viagensVolume = viagens.filter((viagem) => [FROTA_CM, FROTA_TERCEIRIZADA].includes(viagem.caminhao?.frota));
-  const viagensUnidadeDesconhecida = viagens.filter((viagem) => ![FROTA_CM, FROTA_TERCEIRIZADA, FROTA_BAGACO].includes(viagem.caminhao?.frota));
+  const viagensBagaco = viagens.filter((viagem) => frotaEfetivaViagem(viagem, viagem.caminhao?.frota) === FROTA_BAGACO);
+  const viagensVolume = viagens.filter((viagem) => [FROTA_CM, FROTA_TERCEIRIZADA].includes(frotaEfetivaViagem(viagem, viagem.caminhao?.frota)));
+  const viagensUnidadeDesconhecida = viagens.filter((viagem) => ![FROTA_CM, FROTA_TERCEIRIZADA, FROTA_BAGACO].includes(frotaEfetivaViagem(viagem, viagem.caminhao?.frota)));
   const somarViagens = (itens, campo) => itens.reduce((total, viagem) => total + (Number(viagem[campo]) || 0), 0);
   const totaisRelatorio = {
     volumeFiscalM3: somarViagens(viagensVolume, "volumeFiscal"),
@@ -193,11 +197,12 @@ function Resumo({ titulo, valor }) {
 }
 
 function ReceitaResumo({ totais }) {
+  const taxas = descricoesPercentuais(totais);
   return <>
     <Resumo titulo="Receita da C&M" valor={formatarMoeda(totais.receitaEmpresa)} />
     <Resumo titulo="Bruto dos terceirizados" valor={formatarMoeda(totais.brutoTerceirizados)} />
-    <Resumo titulo="C&M dos terceirizados (11%)" valor={formatarMoeda(totais.comissaoCM)} />
-    <Resumo titulo="Caminhoneiros (89%, antes de encargos)" valor={formatarMoeda(totais.participacaoCaminhoneiros)} />
+    <Resumo titulo={`C&M dos terceirizados (${taxas.comissao})`} valor={formatarMoeda(totais.comissaoCM)} />
+    <Resumo titulo={`Caminhoneiros (${taxas.repasse}, antes de encargos)`} valor={formatarMoeda(totais.participacaoCaminhoneiros)} />
     {totais.brutoNaoClassificado !== 0 && <Resumo titulo="Bruto sem frota identificada (fora da receita C&M)" valor={formatarMoeda(totais.brutoNaoClassificado)} />}
   </>;
 }
@@ -239,9 +244,9 @@ function CaminhaoCard({ grupo }) {
             itens={viagens}
             linha={(v) => <>
               <td>{v.nf || "—"}</td>
-              {viagemComCamposRelatorio && <td>{caminhao.placa || "—"}</td>}
+              {viagemComCamposRelatorio && <td>{v.placaRegistrada || caminhao.placa || "—"}</td>}
               <td>{formatarData(v.data)}</td>
-              {!viagemComCamposRelatorio && <td>{caminhao.placa || "—"}</td>}
+              {!viagemComCamposRelatorio && <td>{v.placaRegistrada || caminhao.placa || "—"}</td>}
               <td>{formatarNumero(v.volumeFiscal)} {unidade}</td><td>{formatarNumero(v.volumeEntregue)} {unidade}</td>
               {viagemComCamposRelatorio && <td>{formatarNumero(v.diferenca)} {unidade}</td>}
               <td>{v.cte || "—"}</td>
@@ -439,25 +444,25 @@ function ConsultaPeriodo() {
           <Resumo titulo="ICMS lançado" valor={formatarMoeda(dadosExibidos.totais.icms)} />
         </section>
 
-        {exibirCm && <section className="consulta-frota-grupo">
+        {(exibirCm || listaCaminhoes(FROTA_CM).length > 0 || listaCaminhoes(FROTA_BAGACO).length > 0) && <section className="consulta-frota-grupo">
           <header><h2>Frota C&M</h2><p>{listaCaminhoes(FROTA_CM).length} caminhões</p></header>
-          {listaCaminhoes(FROTA_CM).map((grupo) => <CaminhaoCard key={grupo.caminhao.id} grupo={grupo} />)}
+          {listaCaminhoes(FROTA_CM).map((grupo) => <CaminhaoCard key={grupo.chave} grupo={grupo} />)}
           {listaCaminhoes(FROTA_BAGACO).length > 0 && <section className="consulta-subfrota">
             <header><h3>Frota de Bagaço de Cana</h3><p>Volumes exibidos em toneladas (t), separados de m³.</p></header>
-            {listaCaminhoes(FROTA_BAGACO).map((grupo) => <CaminhaoCard key={grupo.caminhao.id} grupo={grupo} />)}
+            {listaCaminhoes(FROTA_BAGACO).map((grupo) => <CaminhaoCard key={grupo.chave} grupo={grupo} />)}
           </section>}
           {!listaCaminhoes(FROTA_CM).length && !listaCaminhoes(FROTA_BAGACO).length && <p className="consulta-vazio">Nenhum caminhão da Frota C&M neste escopo.</p>}
         </section>}
 
-        {exibirTerceirizada && <section className="consulta-frota-grupo">
+        {(exibirTerceirizada || listaCaminhoes(FROTA_TERCEIRIZADA).length > 0) && <section className="consulta-frota-grupo">
           <header><h2>Frota Terceirizada</h2><p>{listaCaminhoes(FROTA_TERCEIRIZADA).length} caminhões</p></header>
-          {listaCaminhoes(FROTA_TERCEIRIZADA).map((grupo) => <CaminhaoCard key={grupo.caminhao.id} grupo={grupo} />)}
+          {listaCaminhoes(FROTA_TERCEIRIZADA).map((grupo) => <CaminhaoCard key={grupo.chave} grupo={grupo} />)}
           {!listaCaminhoes(FROTA_TERCEIRIZADA).length && <p className="consulta-vazio">Nenhum caminhão terceirizado neste escopo.</p>}
         </section>}
 
         {gruposCaminhoes.some((grupo) => !grupo.caminhao.frota) && <section className="consulta-frota-grupo">
           <header><h2>Frota não identificada</h2></header>
-          {gruposCaminhoes.filter((grupo) => !grupo.caminhao.frota).map((grupo) => <CaminhaoCard key={grupo.caminhao.id} grupo={grupo} />)}
+          {gruposCaminhoes.filter((grupo) => !grupo.caminhao.frota).map((grupo) => <CaminhaoCard key={grupo.chave} grupo={grupo} />)}
         </section>}
 
         {escopo === ESCOPO_TODOS && <section className="consulta-card consulta-despesas-gerais">

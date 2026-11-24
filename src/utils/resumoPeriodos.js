@@ -3,7 +3,7 @@
 // cada período. Usado no Painel (todos os caminhões) e na página de um
 // caminhão específico (só as semanas dele).
 
-import { repartirReceita, custoDaEmpresa, fecharReceitas } from "./receitaEmpresa";
+import { repartirReceita, custoDaEmpresa, fecharReceitas, frotaEfetivaViagem } from "./receitaEmpresa";
 import { taxaEfetivaViagem } from "../data/caminhoes";
 import { converterNumero } from "./formatadores";
 
@@ -72,9 +72,9 @@ export function calcularResumoPorPeriodo(
 
       semana.viagens.forEach((viagem) => {
         const volEntregue = converterNumero(viagem.volEntregue) || 0;
-        const taxa = taxaEfetivaViagem(viagem, frota);
+        const taxa = taxaEfetivaViagem(viagem, frotaEfetivaViagem(viagem, frota));
         periodo.volumeEntregue += volEntregue;
-        const receita = repartirReceita(volEntregue * taxa, frota);
+        const receita = repartirReceita(volEntregue * taxa, frota, viagem);
         Object.keys(receita).forEach((campo) => { periodo[campo] += receita[campo]; });
       });
     });
@@ -130,7 +130,7 @@ export function somarPeriodos(periodos) {
     (soma, periodo) => ({
       totalViagens: soma.totalViagens + periodo.totalViagens,
       volumeEntregue: soma.volumeEntregue + periodo.volumeEntregue,
-      ...Object.fromEntries(Object.keys(repartirReceita(0, null)).map((campo) => [campo, soma[campo] + periodo[campo]])),
+      ...Object.fromEntries(Object.keys(repartirReceita(0, null)).map((campo) => [campo, (soma[campo] || 0) + (periodo[campo] || 0)])),
       totalCombustivel: soma.totalCombustivel + periodo.totalCombustivel,
       custosNaoClassificados: soma.custosNaoClassificados + periodo.custosNaoClassificados,
       totalDespesasExtras:

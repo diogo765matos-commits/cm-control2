@@ -1,0 +1,53 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/caminhao/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/frota/motorista/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/periodo/:inicio/:fim",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/frota",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/frota/taxas",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/alocacoes",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lancamentos",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lancamentos/viagem",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lancamentos/despesa",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/despesas",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/despesas-extras",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/consulta-periodo",
+      "destination": "/index.html"
+    }
+  ]
+}

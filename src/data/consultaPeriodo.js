@@ -1,4 +1,4 @@
-import { repartirReceita, somarReceitas } from "../utils/receitaEmpresa";
+import { repartirReceita, somarReceitas, frotaEfetivaViagem } from "../utils/receitaEmpresa";
 import { db } from "../lib/supabase";
 import { converterNumero } from "../utils/formatadores";
 import { FROTA_BAGACO, FROTA_CM, FROTA_TERCEIRIZADA, taxaEfetivaViagem } from "./caminhoes";
@@ -51,7 +51,8 @@ function idCaminhaoDoItem(item) {
 
 function frotaDoItem(item, caminhoesPorId) {
   const id = idCaminhaoDoItem(item);
-  return item.caminhao?.frota ?? caminhoesPorId.get(String(id))?.frota ?? null;
+  const frotaAtual = item.caminhao?.frota ?? caminhoesPorId.get(String(id))?.frota ?? null;
+  return frotaEfetivaViagem(item, frotaAtual);
 }
 
 function itemPertenceAoEscopo(item, escopo, caminhaoId, caminhoesPorId) {
@@ -91,7 +92,7 @@ export function calcularTotaisConsulta(consulta) {
     volumeEntregueM3: somar(viagensVolume, "volumeEntregue"),
     toneladasEntregues: somar(viagensBagaco, "volumeEntregue"),
     volumeUnidadeDesconhecida: somar(viagensUnidadeDesconhecida, "volumeEntregue"),
-    ...somarReceitas(viagens.map((viagem) => repartirReceita(viagem.valorEntregue, frotaDoItem(viagem, caminhoesPorId)))),
+    ...somarReceitas(viagens.map((viagem) => repartirReceita(viagem.valorEntregue, frotaDoItem(viagem, caminhoesPorId), viagem))),
     combustivel: somar(abastecimentos, "valorTotal"),
     despesasCaminhao: somar(despesasCaminhao, "valor"),
     despesasGerais: somar(despesasGerais, "valor"),
@@ -189,7 +190,7 @@ export async function consultarLancamentosPorPeriodo(inicio, fim) {
   const viagensComValores = viagens.map((viagem) => {
     const volumeFiscal = converterNumero(viagem.volFiscal) || 0;
     const volumeEntregue = converterNumero(viagem.volEntregue) || 0;
-    const taxa = taxaEfetivaViagem(viagem, viagem.caminhao?.frota);
+    const taxa = taxaEfetivaViagem(viagem, frotaDoItem(viagem, caminhoesPorId));
     return {
       ...viagem,
       volumeFiscal,

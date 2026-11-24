@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { auth } from "../lib/supabase";
+import { auth, cadastroPublicoHabilitado } from "../lib/supabase";
 
 function Login({ onLogin }) {
   const [modo, setModo] = useState("entrar"); // "entrar" | "cadastrar"
@@ -16,6 +16,8 @@ function Login({ onLogin }) {
     setAviso("");
   }
 
+  const cadastro = cadastroPublicoHabilitado && modo === "cadastrar";
+
   async function enviar(e) {
     e.preventDefault();
     setErro("");
@@ -23,7 +25,7 @@ function Login({ onLogin }) {
     setCarregando(true);
 
     try {
-      if (modo === "entrar") {
+      if (!cadastro) {
         await auth.login(email, senha);
         onLogin();
       } else {
@@ -51,12 +53,12 @@ function Login({ onLogin }) {
         <h1 style={{ marginBottom: "6px" }}>🚛 C&M Control</h1>
 
         <p style={{ color: "var(--cor-texto-secundario)", marginBottom: "20px" }}>
-          {modo === "entrar"
-            ? "Entre com sua conta para acessar o sistema."
-            : "Crie sua conta para acessar o sistema."}
+          {cadastro
+            ? "Crie sua conta para acessar o sistema."
+            : "Entre com sua conta para acessar o sistema."}
         </p>
 
-        <div style={estiloAbas}>
+        {cadastroPublicoHabilitado && <div style={estiloAbas}>
           <button
             type="button"
             onClick={() => trocarModo("entrar")}
@@ -72,7 +74,7 @@ function Login({ onLogin }) {
           >
             Criar conta
           </button>
-        </div>
+        </div>}
 
         <label style={estiloLabel}>
           E-mail
@@ -94,7 +96,7 @@ function Login({ onLogin }) {
             onChange={(e) => setSenha(e.target.value)}
             style={estiloInput}
             autoComplete={
-              modo === "entrar" ? "current-password" : "new-password"
+              cadastro ? "new-password" : "current-password"
             }
             minLength={6}
             required
@@ -112,9 +114,9 @@ function Login({ onLogin }) {
         <button type="submit" disabled={carregando} style={estiloBotao}>
           {carregando
             ? "Enviando..."
-            : modo === "entrar"
-            ? "Entrar"
-            : "Criar conta"}
+            : cadastro
+            ? "Criar conta"
+            : "Entrar"}
         </button>
       </form>
     </div>

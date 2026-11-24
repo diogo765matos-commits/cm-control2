@@ -91,12 +91,26 @@ export const db = {
     });
   },
 
+  rpc(nome, dados) {
+    return request(`/rest/v1/rpc/${nome}`, {
+      method: "POST",
+      body: JSON.stringify(dados),
+    });
+  },
+
   remove(tabela, filtro) {
     return request(`/rest/v1/${tabela}?${filtro}`, {
       method: "DELETE",
     });
   },
 };
+
+// Marcador VITE exclusivo do ambiente Preview. Qualquer valor explícito
+// desabilita o cadastro; a ausência mantém o comportamento anterior fora de Preview.
+export const cadastroPublicoHabilitado =
+  !import.meta.env.VITE_CM_VERCEL_PREVIEW &&
+  import.meta.env.MODE !== "preview" &&
+  import.meta.env.VITE_CM_PREVIEW === undefined;
 
 export const auth = {
   async login(email, senha) {
@@ -125,6 +139,7 @@ export const auth = {
   },
 
   async cadastrar(email, senha) {
+    if (!cadastroPublicoHabilitado) throw new Error("Cadastro indisponível nesta versão de teste.");
     const resposta = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
       method: "POST",
       headers: {

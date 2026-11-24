@@ -1,3 +1,4 @@
+import { descricoesPercentuais } from "./receitaEmpresa.js";
 import { formatarData } from "./formatadores.js";
 
 const PRETO = "FF202020";
@@ -145,13 +146,14 @@ function nomeUnico(placa, usados) {
 }
 
 function participacoes(ws, row, totais) {
+  const taxas = descricoesPercentuais(totais);
   return tabela(ws, { row, titulo: "RECEITA DA C&M E PARTICIPAÇÕES • antes de encargos e sem alterar fechamentos",
     headers: ["INDICADOR", "VALOR (R$)"], spans: [9, 4], formatos: { 2: MOEDA },
     linhas: [
       ["Faturamento bruto geral", totais.receitaBruta],
       ["Faturamento bruto dos terceirizados", totais.brutoTerceirizados],
-      ["Comissão C&M sobre terceirizados (11%)", totais.comissaoCM],
-      ["Participação bruta dos caminhoneiros (89%)", totais.participacaoCaminhoneiros],
+      [`Comissão C&M sobre terceirizados (${taxas.comissao})`, totais.comissaoCM],
+      [`Participação bruta dos caminhoneiros (${taxas.repasse})`, totais.participacaoCaminhoneiros],
       ["Receita da C&M (própria + comissão)", totais.receitaEmpresa],
       ["Bruto sem frota identificada (não incluído na receita C&M)", totais.brutoNaoClassificado],
     ], totalLabel: "Participação bruta não é líquido a pagar",
@@ -217,7 +219,7 @@ export function construirWorkbookConsulta({ ExcelJS, relatorio, grupos, logoBase
     let proxima = tabela(ws, {
       row: 7, titulo: "VIAGENS • totais da tabela acompanham o filtro; caixas acima representam o período completo",
       headers: ["Nº NF", "PLACA", "DATA NF", `VOL. FISCAL (${unidade})`, `VOL. ENTREGUE (${unidade})`, `DIFERENÇA (${unidade})`, "CT-E", "TRANSPORTADORA", "FRETE R$/UNID.", "VALOR FISCAL (R$)", "COMPLEMENTO (R$)", "VALOR FÍSICO (R$)", "DATA TRANSPORTE"],
-      linhas: viagens.map(v => [v.nf ?? "", caminhao.placa || "", dataExcel(v.data), v.volumeFiscal, v.volumeEntregue, v.diferenca, v.cte ?? "", v.transportadora, v.taxa, v.valorFiscal, v.complemento, v.valorFisico, dataExcel(v.dataEntrega)]),
+      linhas: viagens.map(v => [v.nf ?? "", v.placaRegistrada || caminhao.placa || "", dataExcel(v.data), v.volumeFiscal, v.volumeEntregue, v.diferenca, v.cte ?? "", v.transportadora, v.taxa, v.valorFiscal, v.complemento, v.valorFisico, dataExcel(v.dataEntrega)]),
       formatos: { 3: "dd/mm/yyyy", 4: QUANTIDADE, 5: QUANTIDADE, 6: QUANTIDADE, 9: MOEDA, 10: MOEDA, 11: MOEDA, 12: MOEDA, 13: "dd/mm/yyyy" },
       totais: { 4: somar(viagens, "volumeFiscal"), 5: somar(viagens, "volumeEntregue"), 6: somar(viagens, "diferenca"), 10: somar(viagens, "valorFiscal"), 11: somar(viagens, "complemento"), 12: somar(viagens, "valorFisico") }, filtro: true, centralizadas: [3, 7, 13],
     });

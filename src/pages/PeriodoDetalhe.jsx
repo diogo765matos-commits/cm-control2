@@ -1,4 +1,4 @@
-import { repartirReceita, somarReceitas, custoDaEmpresa } from "../utils/receitaEmpresa";
+import { repartirReceita, somarReceitas, custoDaEmpresa, frotaEfetivaViagem, descricoesPercentuais } from "../utils/receitaEmpresa";
 // Página de detalhe de um período (semana) específico, aberta ao clicar
 // numa linha do "Resumo por Período" no Painel. Mostra as viagens (NFs)
 // daquela semana em todos os caminhões, além dos gráficos de receita e
@@ -79,12 +79,14 @@ function PeriodoDetalhe() {
             const volFiscal = converterNumero(viagem.volFiscal) || 0;
             const volEntregue = converterNumero(viagem.volEntregue) || 0;
             const diferenca = volEntregue - volFiscal;
-            const taxa = taxaEfetivaViagem(viagem, caminhao?.frota);
+            const taxa = taxaEfetivaViagem(viagem, frotaEfetivaViagem(viagem, caminhao?.frota));
 
             linhas.push({
               id: viagem.id,
-              ...repartirReceita(volEntregue * taxa, caminhao?.frota),
-              caminhao: rotulo,
+              ...repartirReceita(volEntregue * taxa, caminhao?.frota, viagem),
+              caminhao: viagem.placaRegistrada
+                ? `${caminhao?.modelo || "Caminhão"} (${viagem.placaRegistrada})`
+                : rotulo,
               data: viagem.data,
               nf: viagem.nf,
               cte: viagem.cte,
@@ -157,6 +159,7 @@ function PeriodoDetalhe() {
   const totalViagens = viagens.length;
   const receitaBrutaTotal = viagens.reduce((s, v) => s + v.valorFisico, 0);
   const receita = somarReceitas(viagens);
+  const taxasRelatorio = descricoesPercentuais(receita);
   const pagamentoMotoristas = receita.pagamentoMotoristas;
   const gastos = totalCombustivel + totalDespesasExtras + pagamentoMotoristas;
   const lucro = receita.receitaEmpresa - gastos;
@@ -221,7 +224,7 @@ function PeriodoDetalhe() {
         <KpiCard
           icone="🧑‍✈️"
           cor={CORES_KPI.dourado}
-          rotulo="Motoristas próprios (10%)"
+          rotulo={`Motoristas próprios (${taxasRelatorio.motorista})`}
           valor={formatarMoeda(pagamentoMotoristas)}
           legenda="Nesta semana"
         />
@@ -234,7 +237,7 @@ function PeriodoDetalhe() {
         />
       </div>
 
-      <p>Terceirizados: bruto {formatarMoeda(receita.brutoTerceirizados)} · C&M (11%): {formatarMoeda(receita.comissaoCM)} · Caminhoneiros (89%, antes de encargos): {formatarMoeda(receita.participacaoCaminhoneiros)}</p>
+      <p>Terceirizados: bruto {formatarMoeda(receita.brutoTerceirizados)} · C&M ({taxasRelatorio.comissao}): {formatarMoeda(receita.comissaoCM)} · Caminhoneiros ({taxasRelatorio.repasse}, antes de encargos): {formatarMoeda(receita.participacaoCaminhoneiros)}</p>
       {receita.brutoNaoClassificado !== 0 && <p role="alert">Frota não identificada: {formatarMoeda(receita.brutoNaoClassificado)} não incluídos na receita C&M.</p>}
       {custosNaoClassificados !== 0 && <p role="alert">Custos sem frota identificada: {formatarMoeda(custosNaoClassificados)}. Não incluídos no resultado parcial.</p>}
       <div style={estiloGridGraficos}>

@@ -4,10 +4,12 @@ import logo from "../assets/logo.png";
 import "../styles/sidebar.css";
 
 const ITENS_MENU = [
-  { to: "/", rotulo: "Painel", icone: "🏠" },
+  { to: "/", rotulo: "Dashboard", icone: "🏠" },
+  { to: "/lancamentos", rotulo: "Novo lançamento", icone: "＋" },
   { to: "/frota", rotulo: "Frota", icone: "🚛" },
-  { to: "/despesas-extras", rotulo: "Despesas Extras", icone: "🧾" },
-  { to: "/consulta-periodo", rotulo: "Consulta por Período", icone: "📅" },
+  { to: "/alocacoes", rotulo: "Alocação de motoristas", icone: "👤" },
+  { to: "/despesas", rotulo: "Despesas", icone: "🧾" },
+  { to: "/consulta-periodo", rotulo: "Relatórios", icone: "📅" },
 ];
 
 function Sidebar({ onSair, email, aberto, onFechar }) {
@@ -56,7 +58,7 @@ function Sidebar({ onSair, email, aberto, onFechar }) {
       id="menu-principal"
       ref={sidebarRef}
       className={aberto ? "sidebar aberta" : "sidebar"}
-      inert={compacto && !aberto}
+      inert={!aberto}
       role={compacto && aberto ? "dialog" : undefined}
       aria-modal={compacto && aberto ? true : undefined}
       aria-label="Menu principal"
@@ -84,13 +86,13 @@ function Sidebar({ onSair, email, aberto, onFechar }) {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
-            onClick={onFechar}
+            onClick={compacto ? onFechar : undefined}
             className={({ isActive }) =>
               isActive ? "menu-link active" : "menu-link"
             }
           >
-            <span>{item.icone}</span>
-            {item.rotulo}
+            <span aria-hidden="true">{item.icone}</span>
+            <span className="menu-label">{item.rotulo}</span>
           </NavLink>
         ))}
       </nav>

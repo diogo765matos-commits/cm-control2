@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   getCaminhoes,
   criarCaminhao,
   excluirCaminhao,
   FROTAS,
 } from "../data/caminhoes";
+import { MotoristasFrotaV2 } from "../v2/FrotaV2";
 import PageHeader from "../components/PageHeader";
 import "../styles/frota.css";
 
@@ -13,6 +14,9 @@ function Frota() {
   const [caminhoes, setCaminhoes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [frotaAtiva, setFrotaAtiva] = useState("cm");
+  const [visualizacao, setVisualizacao] = useState("motoristas");
+  const [gerenciamento, setGerenciamento] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -89,20 +93,28 @@ function Frota() {
         subtitulo={`${caminhoes.length} caminhão(ões) cadastrado(s) ao todo.`}
       />
 
-      {FROTAS.map((frota) => (
-        <SecaoFrota
-          key={frota.tipo}
-          titulo={frota.titulo}
-          caminhoes={caminhoes.filter((c) => c.frota === frota.tipo)}
-          onAdicionar={(dados) => adicionarCaminhao(dados, frota.tipo)}
-          onExcluir={excluir}
-        />
+      <div className="v2-actions" aria-label="Frota">
+        {FROTAS.filter(f => f.tipo !== "bagaco").map(f =>
+          <button key={f.tipo} aria-pressed={frotaAtiva === f.tipo} onClick={() => setFrotaAtiva(f.tipo)}>{f.titulo}</button>)}
+      </div>
+      <div className="v2-actions" aria-label="Visualização da frota">
+        <button aria-pressed={visualizacao === "motoristas"} onClick={() => setVisualizacao("motoristas")}>Motoristas</button>
+        <button aria-pressed={visualizacao === "caminhoes"} onClick={() => setVisualizacao("caminhoes")}>Caminhões</button>
+        <button aria-pressed={gerenciamento} onClick={() => setGerenciamento(v => !v)}>Gerenciar cadastros</button>
+        <Link to="/frota/taxas">Taxas e comissões</Link>
+      </div>
+      {visualizacao === "motoristas" && <MotoristasFrotaV2 key={frotaAtiva} frota={frotaAtiva} gerenciamento={gerenciamento} />}
+      {visualizacao === "caminhoes" && FROTAS.filter(f => f.tipo === frotaAtiva).map(f => (
+        <SecaoFrota key={f.tipo} titulo={f.titulo} caminhoes={caminhoes.filter(c => c.frota === f.tipo)}
+          onAdicionar={dados => adicionarCaminhao(dados, f.tipo)} permitirSemMotorista={f.tipo === "cm"} />
       ))}
+      <SecaoFrota titulo="Frota de Bagaço de Cana" caminhoes={caminhoes.filter(c => c.frota === "bagaco")}
+        onAdicionar={dados => adicionarCaminhao(dados, "bagaco")} onExcluir={excluir} />
     </div>
   );
 }
 
-function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
+function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir, permitirSemMotorista = false }) {
   const navigate = useNavigate();
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -118,7 +130,7 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
     if (
       !novoCaminhao.modelo.trim() ||
       !novoCaminhao.placa.trim() ||
-      !novoCaminhao.motorista.trim()
+      (!permitirSemMotorista && !novoCaminhao.motorista.trim())
     ) {
       alert("Preencha todos os campos.");
       return;
@@ -257,13 +269,13 @@ function SecaoFrota({ titulo, caminhoes, onAdicionar, onExcluir }) {
                   Abrir →
                 </button>
 
-                <button
+                {onExcluir && <button
                   onClick={() => onExcluir(caminhao.id)}
                   className="frota-botao-excluir"
                   aria-label={`Excluir caminhão ${caminhao.placa}`}
                 >
                   🗑 Excluir
-                </button>
+                </button>}
               </div>
             </div>
           ))}

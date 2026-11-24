@@ -1,3 +1,5 @@
+> **Homologação V2:** este guia descreve o fluxo legado. Não habilite cadastro público, cadastro anônimo, SMTP ou dados de produção no projeto de teste. Use o [roteiro de Preview V2](docs/CM_CONTROL_V2_HOMOLOGACAO.md#preview-hospedado-navegação-direta-e-conta-sintética).
+
 # Colocando o CM Control no ar
 
 O sistema foi adaptado para guardar os dados no [Supabase](https://supabase.com)

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import { construirWorkbookConsulta } from "../src/utils/consultaPeriodoExcel.js";
+import * as receita from "../src/utils/receitaEmpresa.js";
 import { converterNumero, formatarData } from "../src/utils/formatadores.js";
 
 const require = createRequire(import.meta.url);
@@ -32,10 +33,10 @@ const db = { select: async table => {
   if (table === "despesas_gerais_semanas") return [{ despesas: [{ id: 2, data: "2026-09-29", descricao: "Despesa geral de teste", valor: 99.12 }] }];
   return [];
 } };
-const dataFns = carregar(fs.readFileSync("src/data/consultaPeriodo.js", "utf8"), ["consultarLancamentosPorPeriodo", "filtrarConsultaPorEscopo", "calcularTotaisConsulta"], { ...constants, db, converterNumero, taxaEfetivaViagem: v => v.taxa });
+const dataFns = carregar(fs.readFileSync("src/data/consultaPeriodo.js", "utf8"), ["consultarLancamentosPorPeriodo", "filtrarConsultaPorEscopo", "calcularTotaisConsulta"], { ...constants, ...receita, db, converterNumero, taxaEfetivaViagem: v => v.taxa });
 const page = fs.readFileSync("src/pages/ConsultaPeriodo.jsx", "utf8").split("function Tabela(")[0];
 const pageFns = carregar(page, ["criarDadosRelatorio", "agruparCaminhoes", "ordenarPorFrotaECaminhao", "tituloFrota", "unidadeVisivel"], {
-  ...constants, ...dataFns, formatarData,
+  ...constants, ...receita, ...dataFns, formatarData,
   TRANSPORTADORA_CM: "Transportadora de teste", TRANSPORTADORA_TERCEIRIZADA: "Transportadora terceira de teste",
   unidadeDaFrota: frota => ({ curta: frota === "bagaco" ? "ton" : "m³" }),
 });
@@ -183,7 +184,7 @@ let releaseBuffer, bufferStarted, current = true;
 const started = new Promise(resolve => { bufferStarted = resolve; });
 const links = [];
 const browserExporter = carregar(page, ["exportarExcel"], {
-  ...constants, ...dataFns, formatarData, logoUrl: "bundled-logo.png",
+  ...constants, ...receita, ...dataFns, formatarData, logoUrl: "bundled-logo.png",
   unidadeDaFrota: frota => ({ curta: frota === "bagaco" ? "ton" : "m³" }),
   window: { ExcelJS },
   fetch: async () => ({ ok: true, blob: async () => ({}) }),
@@ -199,3 +200,25 @@ current = false; releaseBuffer(new Uint8Array());
 assert.equal(await canceledExport, false);
 assert.equal(links.length, 0);
 console.log("PASS actual browser exporter: no download link created after selection changes during buffer generation");
+
+// Preserve the worksheet layout and transport dates even when preserving a
+// rate and plate snapshot from before a later truck registration change.
+const movedTruck = { ...caminhoes[0], placa: "NEW0001" };
+const mixedSource = { ...consulta, caminhoes: [movedTruck, caminhoes[1]], viagens: [
+  { ...consulta.viagens[0], caminhao: movedTruck, nf: "90001",
+    placaRegistrada: "OLD0001", frotaRegistrada: "terceirizada", percentualAplicado: 0 },
+  { ...consulta.viagens[1], nf: "90002" },
+] };
+const mixed = gerar(dataFns.filtrarConsultaPorEscopo(mixedSource, "terceirizada"), "terceirizada");
+const mixedReloaded = new ExcelJS.Workbook();
+await mixedReloaded.xlsx.load(await mixed.wb.xlsx.writeBuffer());
+assert.equal(mixed.relatorio?.totais?.quantidadeViagens, 2);
+const sheet = mixedReloaded.getWorksheet(movedTruck.placa);
+assert.equal(sheet.getCell("A9").value, "90001");
+assert.equal(sheet.getCell("B9").value, "OLD0001");
+assert.equal(sheet.getCell("C9").numFmt, "dd/mm/yyyy");
+assert.equal(sheet.getCell("M9").numFmt, "dd/mm/yyyy");
+assert.ok(JSON.stringify(mixedReloaded.getWorksheet("Resumo").model).includes("taxas registradas"));
+assert.equal(mixed.relatorio?.totais?.comissaoCM,
+  Math.round(consulta.viagens[1].valorEntregue * 11) / 100);
+console.log("PASS V2: frota e placa históricas, taxa 0%, escopo e planilha legada");

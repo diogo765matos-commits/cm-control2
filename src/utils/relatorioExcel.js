@@ -1,4 +1,4 @@
-import { repartirReceita, somarReceitas } from "./receitaEmpresa";
+import { repartirReceita, somarReceitas, descricoesPercentuais } from "./receitaEmpresa";
 // Monta e baixa o workbook (ExcelJS) do "Fechamento Financeiro de Transporte"
 // usado nos botões "Relatório Semanal (Excel)" da Frota e de cada caminhão.
 //
@@ -154,14 +154,15 @@ function adicionarParticipacoes(ws, viagens, taxa, comFiscal) {
   const colValor = comFiscal ? 9 : 5;
   const ultimaColuna = comFiscal ? 13 : 6;
   const totais = somarReceitas(viagens.map(v => repartirReceita(
-    (converterNumero(v.volEntregue) || 0) * (converterNumero(v.taxa) || taxa), v.frota
+    (converterNumero(v.volEntregue) || 0) * (converterNumero(v.taxa) || taxa), v.frota, v
   )));
+  const taxasRelatorio = descricoesPercentuais(totais);
   const linhas = [
     ["RECEITA DA C&M E PARTICIPAÇÕES (ANTES DE ENCARGOS)"],
     ["Faturamento bruto geral", totais.receitaBruta],
     ["Faturamento bruto dos terceirizados", totais.brutoTerceirizados],
-    ["Comissão C&M dos terceirizados (11%)", totais.comissaoCM],
-    ["Participação bruta dos caminhoneiros (89%)", totais.participacaoCaminhoneiros],
+    [`Comissão C&M dos terceirizados (${taxasRelatorio.comissao})`, totais.comissaoCM],
+    [`Participação bruta dos caminhoneiros (${taxasRelatorio.repasse})`, totais.participacaoCaminhoneiros],
     ["Receita da C&M (própria + comissão)", totais.receitaEmpresa],
     ["Bruto sem frota identificada (não incluído na receita C&M)", totais.brutoNaoClassificado],
     ["Participação bruta não é líquido a pagar. Fechamento original preservado."],
